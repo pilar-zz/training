@@ -1,0 +1,395 @@
+import { useState } from "react";
+
+const WORKOUTS = [
+  {
+    id: "upper", label: "Tren Superior", emoji: "💪", color: "#a8f040", colorDim: "#1a2e08",
+    blocks: [
+      {
+        name: "Calentamiento · 5 min",
+        exercises: [
+          { id: "u_w1", name: "Movilidad hombros + rotaciones de brazo", sets: "2 × 30 seg", note: "Círculos pequeños y grandes, codos y muñecas también." },
+          { id: "u_w2", name: "Band pull-apart o apertura en T", sets: "2 × 15 reps", note: "Con goma o sin. Activa espalda alta antes de cargar." },
+          { id: "u_w3", name: "Push-up negativo lento (3 seg bajando)", sets: "2 × 8 reps", note: "De rodillas si hace falta. Activa tríceps y hombro." },
+        ],
+      },
+      {
+        name: "Hombro · Empuje",
+        exercises: [
+          { id: "u_a1", name: "Press de hombros con mancuernas (sentada)", sets: "3 × 10-12", note: "Banco con respaldo. Mancuernas a la altura de orejas, empuja arriba sin bloquear. No arquees lumbar.", alt: { name: "Press de hombros con barra (Z-bar)", note: "Agarre al ancho de hombros. Baja hasta la frente, codos ligeramente adelantados." } },
+          { id: "u_a2", name: "Elevaciones laterales con mancuernas", sets: "3 × 12-15", note: "Peso muy ligero (2-4 kg). Sube hasta la altura del hombro, brazos casi rectos.", alt: { name: "Elevaciones laterales en polea baja", note: "Polea al nivel del suelo, agarre cruzado. Recorrido más constante que con mancuerna." } },
+          { id: "u_a3", name: "Elevaciones frontales con mancuernas", sets: "3 × 12", note: "Alterna brazos. Controla la bajada, no uses inercia.", alt: { name: "Elevaciones frontales con disco", note: "Agarra el disco con ambas manos. Más fácil de controlar el peso." } },
+        ],
+      },
+      {
+        name: "Espalda + Bíceps · Tracción",
+        exercises: [
+          { id: "u_b1", name: "Jalón al pecho en polea alta (lat pulldown)", sets: "3 × 10-12", note: "Agarre ancho. Jala hacia el esternón, pecho arriba, codos hacia abajo y atrás.", alt: { name: "Dominadas asistidas (máquina o banda)", note: "Si hay máquina asistida úsala. Si no, banda en la barra y apoya la rodilla." } },
+          { id: "u_b2", name: "Remo en polea baja sentada (cable row)", sets: "3 × 10-12", note: "Espalda recta, jala hacia el ombligo. No te balancees.", alt: { name: "Remo con barra inclinada (bent-over row)", note: "Espalda a 45°, jala hacia el ombligo. Codos cerca del cuerpo." } },
+          { id: "u_b3", name: "Remo con mancuerna a una mano", sets: "3 × 10 c/lado", note: "Apoyada en banco. Codo cerca del cuerpo, sube hacia la cadera.", alt: { name: "Remo con mancuernas bilateral en banco inclinado", note: "Banco a 30°, apoya el pecho. Rema con ambas mancuernas a la vez." } },
+          { id: "u_b4", name: "Curl de bíceps con mancuernas alterno", sets: "3 × 10-12", note: "No balancees el codo. Supina la muñeca al subir.", alt: { name: "Curl con barra recta o Z-bar", note: "Bilateral, más carga. La Z-bar reduce tensión en muñecas." } },
+        ],
+      },
+      {
+        name: "Tríceps · Cierre",
+        exercises: [
+          { id: "u_c1", name: "Pushdown en polea alta (cuerda o barra)", sets: "3 × 12-15", note: "Codos pegados al cuerpo, empuja hacia abajo. Contrae al final 1 seg.", alt: { name: "Fondos en banco (bench dips)", note: "Manos en el borde del banco, pies al frente. Baja hasta 90° de codo." } },
+          { id: "u_c2", name: "Extensión de tríceps sobre cabeza con mancuerna", sets: "3 × 12", note: "Mancuerna con ambas manos sobre la cabeza, baja detrás. Codos al techo.", alt: { name: "Extensión de tríceps sobre cabeza en polea alta", note: "Da la espalda a la polea, agarra la cuerda y extiende hacia adelante." } },
+        ],
+      },
+    ],
+  },
+  {
+    id: "lower", label: "Tren Inferior", emoji: "🦵", color: "#f04a6e", colorDim: "#2e0813",
+    blocks: [
+      {
+        name: "Calentamiento · 5 min",
+        exercises: [
+          { id: "l_w1", name: "Movilidad de cadera 90/90 en el suelo", sets: "1 × 60 seg", note: "Ambas piernas en 90°, rota el torso hacia cada lado." },
+          { id: "l_w2", name: "Sentadilla goblet con kettlebell ligera", sets: "2 × 10 reps", note: "KB de 8-12 kg en el pecho. Activa todo el patrón." },
+          { id: "l_w3", name: "Glute bridge sin peso", sets: "2 × 15 reps", note: "Contrae glúteo arriba 1 seg. Activa antes del hip thrust." },
+        ],
+      },
+      {
+        name: "Glúteo + Femoral · Principal",
+        exercises: [
+          { id: "l_a1", name: "Hip Thrust con barra", sets: "4 × 10-12", note: "Banco al nivel de omóplatos, barra con almohadilla en caderas. Contrae glúteo 1 seg arriba. Progresá en peso cada semana.", alt: { name: "Hip Thrust con mancuernas o disco", note: "Misma ejecución, el peso encima de las caderas directamente. Si la barra está ocupada." } },
+          { id: "l_a2", name: "Sentadilla sumo con kettlebell o disco", sets: "3 × 10-12", note: "Pies anchos, puntas hacia afuera. Más glúteo y femoral interno.", alt: { name: "Sentadilla sumo en Smith Machine", note: "Pies anchos, delante de la barra. Baja hasta paralelo. Más carga segura." } },
+          { id: "l_a3", name: "Curl femoral en máquina tumbada", sets: "3 × 10-12", note: "Rodillas alineadas con el pivote. Baja lento (3 seg).", alt: { name: "Curl femoral con mancuerna tumbada", note: "Tumbada boca abajo, mancuerna entre los tobillos. Flexiona la rodilla lentamente." } },
+          { id: "l_a4", name: "Peso muerto rumano con mancuernas", sets: "3 × 10-12", note: "Espalda recta, bisagra de cadera, baja hasta sentir estiramiento en femoral.", alt: { name: "Peso muerto rumano con barra", note: "Misma ejecución, más carga posible. Barra pegada a las piernas en todo momento." } },
+        ],
+      },
+      {
+        name: "Glúteo · Finalizadores",
+        exercises: [
+          { id: "l_b1", name: "Abductor en máquina", sets: "3 × 15", note: "Asiento ajustado para que la cadera quede neutra.", alt: { name: "Clamshell con banda elástica tumbada de lado", note: "Banda por encima de las rodillas. Abre la rodilla superior sin mover la cadera." } },
+          { id: "l_b2", name: "Patada atrás en polea", sets: "3 × 15 c/lado", note: "Ya lo conocés con 23 kg. Espalda estable, no gires el torso.", alt: { name: "Patada atrás con banda elástica de pie", note: "Banda en el tobillo, fijada a un rack. Misma ejecución que en polea." } },
+          { id: "l_b3", name: "Aducción lateral en polea baja", sets: "2 × 15 c/lado", note: "Pierna cruzada por delante. Trabaja femoral interno.", alt: { name: "Sentadilla sumo isométrica con banda", note: "Banda sobre rodillas. Baja a sentadilla sumo, empuja rodillas hacia afuera 30 seg." } },
+        ],
+      },
+    ],
+  },
+  {
+    id: "cardio", label: "Cardio + Core", emoji: "🔥", color: "#4ac8f0", colorDim: "#081e2e",
+    blocks: [
+      {
+        name: "Cardio · Elegí una opción",
+        exercises: [
+          { id: "c_a1", name: "HIIT · Circuito 40 seg / 20 seg descanso", sets: "3-4 rondas · 25 min", note: "Burpees → Mountain Climbers → Jumping Jacks → Sentadilla con salto → Skipping. Descansá 90 seg entre rondas.", alt: { name: "HIIT en bici estática o remo ergómetro", note: "20 seg al máximo / 40 seg suave. 8-10 rondas. Sin impacto articular." } },
+          { id: "c_a2", name: "Zona 2 · Bici estática o caminadora con inclinación", sets: "25-30 min", note: "Ritmo al que puedas hablar en frases cortas. 60-70% FC máx. Alterna con HIIT semana a semana.", alt: { name: "Zona 2 · Remo ergómetro", note: "Misma intensidad pero involucra tren superior también. Espalda recta, empuja con piernas primero." } },
+        ],
+      },
+      {
+        name: "Core · Siempre",
+        exercises: [
+          { id: "c_b1", name: "Dead bugs", sets: "3 × 8 c/lado", note: "Espalda pegada al suelo. Baja brazo y pierna contrarios lentamente.", alt: { name: "Bird-dog (de rodillas)", note: "A cuatro patas. Extiende brazo y pierna contrarios, cadera nivelada." } },
+          { id: "c_b2", name: "Bicycle twist (espalda despegada)", sets: "3 × 20 reps", note: "No jales el cuello. Rota el torso, codo al lado de la rodilla contraria.", alt: { name: "Russian twist con piernas elevadas", note: "Sin apoyar los pies. Con o sin peso. Más difícil." } },
+          { id: "c_b3", name: "Leg raises (elevación de piernas)", sets: "3 × 12 reps", note: "Piernas juntas, casi rectas. Lumbar pegada al suelo.", alt: { name: "Elevación de piernas colgada en barra", note: "Sube las rodillas al pecho (más fácil) o piernas rectas (avanzado)." } },
+          { id: "c_b4", name: "Plancha lateral", sets: "3 × 30 seg c/lado", note: "Cadera arriba. Sobre pie (avanzado) o sobre rodilla (inicio).", alt: { name: "Plancha lateral con elevación de cadera", note: "Misma posición pero baja y sube la cadera. Más dinámico." } },
+          { id: "c_b5", name: "Russian twist con peso", sets: "3 × 20 reps", note: "Con disco o KB de 6-8 kg.", alt: { name: "Pallof press en polea", note: "Polea al pecho, de lado. Empuja y extiende los brazos sin rotar el torso." } },
+          { id: "c_b6", name: "Walking pivot squats", sets: "3 × 40 seg", note: "Ya lo conocés. Activador de cadera y core.", alt: { name: "Sentadilla con pausa isométrica en el fondo", note: "Baja a sentadilla goblet, mantén 5 seg en el fondo antes de subir." } },
+        ],
+      },
+    ],
+  },
+  {
+    id: "fullbody", label: "Full Body", emoji: "⚡", color: "#f0a830", colorDim: "#2e1e04",
+    blocks: [
+      {
+        name: "Calentamiento · 5 min",
+        exercises: [
+          { id: "f_w1", name: "Thruster con KB ligera (sentadilla + press)", sets: "2 × 10 reps", note: "Baja en sentadilla y al subir empuja la KB arriba. Activa todo el cuerpo." },
+          { id: "f_w2", name: "Movilidad torácica tumbada de lado", sets: "1 × 60 seg", note: "Rodillas dobladas, abre el brazo superior hacia atrás. Desbloquea la espalda alta." },
+        ],
+      },
+      {
+        name: "Pierna + Glúteo",
+        exercises: [
+          { id: "f_a1", name: "Zancada inversa con mancuernas", sets: "4 × 10 c/lado", note: "Pie atrás, rodilla trasera casi toca el suelo. Más glúteo y femoral que la zancada normal.", alt: { name: "Zancada inversa en Smith Machine", note: "Misma ejecución con barra. Más carga, más estabilidad." } },
+          { id: "f_a2", name: "Buenos días con barra (Good Mornings)", sets: "3 × 10-12", note: "Barra en trapecios, espalda recta, bisagra de cadera. Baja hasta sentir estiramiento en femoral.", alt: { name: "Stiff leg deadlift con mancuernas", note: "Piernas casi rectas, baja las mancuernas por delante. Estiramiento máximo en femoral." } },
+        ],
+      },
+      {
+        name: "Espalda · Tracción",
+        exercises: [
+          { id: "f_b1", name: "Remo con barra inclinada (bent-over row)", sets: "4 × 10-12", note: "Espalda a 45°, jala la barra hacia el ombligo. Codos cerca del cuerpo. Ejercicio compuesto distinto al de tren superior.", alt: { name: "Remo en máquina (chest-supported row)", note: "Pecho apoyado en el respaldo inclinado. Quita el trabajo lumbar." } },
+          { id: "f_b2", name: "Encogimientos con mancuernas (shrugs)", sets: "3 × 15", note: "Sube los hombros hacia las orejas, mantén 1 seg. Trabaja trapecios — clave para Muay Thai.", alt: { name: "Encogimientos con barra o KB", note: "Misma ejecución, más carga posible." } },
+        ],
+      },
+      {
+        name: "Hombro + Bíceps",
+        exercises: [
+          { id: "f_c1", name: "Arnold press con mancuernas", sets: "3 × 10-12", note: "Empieza con palmas hacia ti, gira mientras empujas arriba. Trabaja los 3 haces del deltoides. Distinto al press clásico.", alt: { name: "Press de hombros con barra militar de pie", note: "Agarre al ancho de hombros. Baja hasta la frente, empuja arriba. Más carga." } },
+          { id: "f_c2", name: "Curl martillo con mancuernas (hammer curl)", sets: "3 × 10-12", note: "Agarre neutro (pulgar arriba). Trabaja el braquial además del bíceps.", alt: { name: "Curl con barra recta o Z-bar", note: "Bilateral, más carga total. Supinación completa." } },
+        ],
+      },
+      {
+        name: "Core · Cierre",
+        exercises: [
+          { id: "f_d1", name: "Plancha con toque de hombros", sets: "3 × 10 c/lado", note: "En posición de plancha, toca el hombro contrario alternando. Cadera quieta.", alt: { name: "Plancha con KB drag", note: "En plancha, arrastra un KB de un lado al otro por debajo. Anti-rotación con carga." } },
+          { id: "f_d2", name: "Kettlebell swing", sets: "3 × 15", note: "Ya lo hacés con 18 kg. Explosivo, cierra el full body con glúteo + femoral + core.", alt: { name: "Hip hinge con banda (band pull-through)", note: "Banda entre las piernas desde atrás, bisagra de cadera y extiende. Mismo patrón sin KB." } },
+        ],
+      },
+    ],
+  },
+];
+
+function todayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+const initialState = { sessions: {}, swapped: {} };
+
+export default function GymTracker() {
+  const [sessions, setSessions] = useState({});
+  const [swapped, setSwapped] = useState({});
+  const [activeWorkout, setActiveWorkout] = useState(null);
+  const [collapsedBlocks, setCollapsedBlocks] = useState({});
+
+  const today = todayKey();
+
+  function getSession(wid) {
+    return sessions[wid]?.[today] || { checks: {}, weights: {}, completed: false };
+  }
+
+  function getPrevWeights(wid) {
+    const wSessions = sessions[wid] || {};
+    const prevDate = Object.keys(wSessions).filter(d => d !== today).sort().reverse()[0];
+    return prevDate ? (wSessions[prevDate].weights || {}) : {};
+  }
+
+  function updateSession(wid, updater) {
+    setSessions(prev => {
+      const wSessions = prev[wid] || {};
+      const current = wSessions[today] || { checks: {}, weights: {}, completed: false };
+      return { ...prev, [wid]: { ...wSessions, [today]: updater(current) } };
+    });
+  }
+
+  function toggleCheck(wid, eid) {
+    updateSession(wid, s => ({ ...s, checks: { ...s.checks, [eid]: !s.checks[eid] } }));
+  }
+
+  function setWeight(wid, eid, val) {
+    updateSession(wid, s => ({ ...s, weights: { ...s.weights, [eid]: val } }));
+  }
+
+  function toggleComplete(wid) {
+    updateSession(wid, s => ({ ...s, completed: !s.completed }));
+  }
+
+  function resetSession(wid) {
+    setSessions(prev => {
+      const wSessions = { ...(prev[wid] || {}) };
+      delete wSessions[today];
+      return { ...prev, [wid]: wSessions };
+    });
+  }
+
+  function toggleSwap(eid) {
+    setSwapped(prev => ({ ...prev, [eid]: !prev[eid] }));
+  }
+
+  function toggleBlock(key) {
+    setCollapsedBlocks(prev => ({ ...prev, [key]: !prev[key] }));
+  }
+
+  function countChecked(wid) {
+    return Object.values(getSession(wid).checks).filter(Boolean).length;
+  }
+
+  function countTotal(wid) {
+    const w = WORKOUTS.find(w => w.id === wid);
+    return w.blocks.reduce((a, b) => a + b.exercises.length, 0);
+  }
+
+  function lastDone(wid) {
+    const wSessions = sessions[wid] || {};
+    return Object.keys(wSessions).filter(d => d !== today && wSessions[d].completed).sort().reverse()[0];
+  }
+
+  const workout = activeWorkout ? WORKOUTS.find(w => w.id === activeWorkout) : null;
+
+  // ── HOME ──────────────────────────────────────────────────────────────────
+  if (!workout) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#0a0a0a", color: "#f0f0f0", fontFamily: "system-ui, -apple-system, sans-serif", padding: "28px 16px 60px" }}>
+        <div style={{ maxWidth: 460, margin: "0 auto" }}>
+          <p style={{ fontFamily: "monospace", fontSize: 10, letterSpacing: "0.18em", color: "#444", textTransform: "uppercase", marginBottom: 6 }}>VivaGym Bruc · Barcelona</p>
+          <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 4, lineHeight: 1.1 }}>Tu plan de gym</h1>
+          <p style={{ fontSize: 13, color: "#555", marginBottom: 28 }}>Elegí el entrenamiento de hoy</p>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {WORKOUTS.map(w => {
+              const done = getSession(w.id).completed;
+              const checked = countChecked(w.id);
+              const total = countTotal(w.id);
+              const inProgress = checked > 0 && !done;
+              const last = lastDone(w.id);
+
+              return (
+                <div key={w.id} onClick={() => { setActiveWorkout(w.id); }}
+                  style={{ background: done ? w.colorDim : "#141414", border: `1.5px solid ${done ? w.color : "#252525"}`, borderRadius: 14, padding: "16px 18px", cursor: "pointer", position: "relative" }}>
+                  {done && (
+                    <div style={{ position: "absolute", top: 12, right: 14, background: w.color, color: "#000", fontSize: 10, fontWeight: 800, letterSpacing: "0.06em", padding: "3px 9px", borderRadius: 20 }}>
+                      ✓ HOY
+                    </div>
+                  )}
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <span style={{ fontSize: 26 }}>{w.emoji}</span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: done ? w.color : "#f0f0f0" }}>{w.label}</div>
+                      <div style={{ fontSize: 12, color: "#444", marginTop: 2 }}>{total} ejercicios{last ? ` · última vez ${last}` : ""}</div>
+                    </div>
+                  </div>
+                  {inProgress && (
+                    <div style={{ marginTop: 10 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                        <span style={{ fontSize: 11, color: "#555" }}>En progreso</span>
+                        <span style={{ fontSize: 11, color: w.color, fontFamily: "monospace" }}>{checked}/{total}</span>
+                      </div>
+                      <div style={{ height: 3, background: "#222", borderRadius: 2 }}>
+                        <div style={{ height: "100%", width: `${(checked / total) * 100}%`, background: w.color, borderRadius: 2 }} />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <div style={{ marginTop: 32, padding: "13px 16px", background: "#111", borderRadius: 10, border: "1px solid #1e1e1e" }}>
+            <p style={{ fontSize: 10, fontFamily: "monospace", color: "#444", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 5 }}>Recordatorio</p>
+            <p style={{ fontSize: 12, color: "#555", lineHeight: 1.6 }}>Gym a la mañana, Muay Thai a la tarde. Cuando completes las reps limpias → subí el peso la próxima vez.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── WORKOUT ───────────────────────────────────────────────────────────────
+  const session = getSession(workout.id);
+  const prevWeights = getPrevWeights(workout.id);
+  const checkedCount = countChecked(workout.id);
+  const totalCount = countTotal(workout.id);
+  const progress = totalCount > 0 ? checkedCount / totalCount : 0;
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#0a0a0a", color: "#f0f0f0", fontFamily: "system-ui, -apple-system, sans-serif", paddingBottom: 80 }}>
+      {/* Header */}
+      <div style={{ position: "sticky", top: 0, zIndex: 50, background: "#0a0a0af0", backdropFilter: "blur(10px)", borderBottom: "1px solid #1a1a1a", padding: "11px 16px" }}>
+        <div style={{ maxWidth: 460, margin: "0 auto" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 9 }}>
+            <button onClick={() => setActiveWorkout(null)}
+              style={{ background: "#1a1a1a", border: "1px solid #2a2a2a", color: "#777", borderRadius: 8, padding: "5px 11px", fontSize: 12, cursor: "pointer" }}>
+              ← Volver
+            </button>
+            <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 20 }}>{workout.emoji}</span>
+              <span style={{ fontSize: 16, fontWeight: 700 }}>{workout.label}</span>
+            </div>
+            <span style={{ fontSize: 12, color: workout.color, fontFamily: "monospace", fontWeight: 700 }}>{checkedCount}/{totalCount}</span>
+          </div>
+          <div style={{ height: 3, background: "#1e1e1e", borderRadius: 2 }}>
+            <div style={{ height: "100%", width: `${progress * 100}%`, background: workout.color, borderRadius: 2, transition: "width 0.25s" }} />
+          </div>
+        </div>
+      </div>
+
+      <div style={{ maxWidth: 460, margin: "0 auto", padding: "18px 16px" }}>
+        {workout.blocks.map((block, bi) => {
+          const bkey = `${workout.id}_${bi}`;
+          const collapsed = collapsedBlocks[bkey];
+          return (
+            <div key={bi} style={{ marginBottom: 20 }}>
+              <button onClick={() => toggleBlock(bkey)}
+                style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", background: "none", border: "none", cursor: "pointer", padding: "7px 0", marginBottom: 7 }}>
+                <span style={{ fontSize: 10, fontFamily: "monospace", letterSpacing: "0.14em", color: "#555", textTransform: "uppercase" }}>{block.name}</span>
+                <span style={{ fontSize: 12, color: "#444" }}>{collapsed ? "▼" : "▲"}</span>
+              </button>
+
+              {!collapsed && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+                  {block.exercises.map(ex => {
+                    const isSwapped = !!(swapped[ex.id] && ex.alt);
+                    const disp = isSwapped ? ex.alt : ex;
+                    const checked = !!session.checks[ex.id];
+                    const weight = session.weights[ex.id] || "";
+                    const prev = prevWeights[ex.id] || "";
+
+                    return (
+                      <div key={ex.id} style={{ background: checked ? workout.colorDim : "#131313", border: `1.5px solid ${checked ? workout.color : isSwapped ? "#3a300f" : "#1f1f1f"}`, borderRadius: 12, padding: "12px 12px 10px", transition: "border-color 0.15s, background 0.15s" }}>
+                        <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                          {/* Checkbox */}
+                          <button onClick={() => toggleCheck(workout.id, ex.id)}
+                            style={{ width: 22, height: 22, minWidth: 22, borderRadius: 6, border: `2px solid ${checked ? workout.color : "#333"}`, background: checked ? workout.color : "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", marginTop: 2, flexShrink: 0 }}>
+                            {checked && <span style={{ fontSize: 12, color: "#000", fontWeight: 900, lineHeight: 1 }}>✓</span>}
+                          </button>
+
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            {isSwapped && (
+                              <span style={{ fontSize: 9, fontFamily: "monospace", color: "#f0a830", background: "#2e1e04", border: "1px solid #f0a83050", borderRadius: 4, padding: "1px 6px", marginBottom: 4, display: "inline-block", letterSpacing: "0.08em" }}>
+                                ALTERNATIVA
+                              </span>
+                            )}
+                            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, marginTop: isSwapped ? 3 : 0 }}>
+                              <span style={{ fontSize: 13, fontWeight: 600, color: checked ? workout.color : "#e0e0e0", lineHeight: 1.35, flex: 1 }}>{disp.name}</span>
+                              <span style={{ fontSize: 10, fontFamily: "monospace", fontWeight: 700, color: workout.color, whiteSpace: "nowrap", background: workout.colorDim, padding: "2px 7px", borderRadius: 4, border: `1px solid ${workout.color}44`, flexShrink: 0 }}>{ex.sets}</span>
+                            </div>
+                            <p style={{ fontSize: 11, color: "#555", marginTop: 4, lineHeight: 1.5 }}>{disp.note}</p>
+
+                            {/* Weight row */}
+                            <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 9 }}>
+                              <span style={{ fontSize: 11, color: "#444", flexShrink: 0 }}>Peso:</span>
+                              <input type="text" inputMode="decimal"
+                                placeholder={prev ? `Última vez: ${prev}` : "kg / nivel"}
+                                value={weight}
+                                onChange={e => setWeight(workout.id, ex.id, e.target.value)}
+                                onClick={e => e.stopPropagation()}
+                                style={{ flex: 1, background: "#0c0c0c", border: "1px solid #252525", borderRadius: 6, padding: "4px 9px", color: "#f0f0f0", fontSize: 12, outline: "none", fontFamily: "monospace", minWidth: 0 }}
+                              />
+                              {prev && !weight && (
+                                <span style={{ fontSize: 10, color: "#383838", fontFamily: "monospace", flexShrink: 0 }}>↑{prev}</span>
+                              )}
+                            </div>
+
+                            {/* Alt button */}
+                            {ex.alt && (
+                              <button onClick={() => toggleSwap(ex.id)}
+                                style={{ marginTop: 8, background: "none", border: `1px solid ${isSwapped ? "#f0a83055" : "#252525"}`, borderRadius: 7, padding: "4px 10px", color: isSwapped ? "#f0a830" : "#444", fontSize: 11, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
+                                <span>⇄</span>
+                                <span>{isSwapped ? "Volver al original" : "Máquina ocupada → alternativa"}</span>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {/* Complete */}
+        <div style={{ marginTop: 28, display: "flex", flexDirection: "column", gap: 9 }}>
+          <button onClick={() => toggleComplete(workout.id)}
+            style={{ width: "100%", padding: "15px", background: session.completed ? workout.color : "#161616", border: `2px solid ${workout.color}`, borderRadius: 13, fontSize: 15, fontWeight: 800, color: session.completed ? "#000" : workout.color, cursor: "pointer", transition: "all 0.2s" }}>
+            {session.completed ? "✓ Entrenamiento completado" : "Marcar como completado"}
+          </button>
+          {session.completed && (
+            <button onClick={() => resetSession(workout.id)}
+              style={{ background: "none", border: "1px solid #222", borderRadius: 9, padding: "9px", color: "#444", fontSize: 11, cursor: "pointer" }}>
+              Deshacer — resetear sesión de hoy
+            </button>
+          )}
+        </div>
+
+        <div style={{ marginTop: 20, padding: "12px 15px", background: "#111", borderRadius: 10, border: "1px solid #1a1a1a" }}>
+          <p style={{ fontSize: 10, fontFamily: "monospace", color: "#444", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 5 }}>Progresión</p>
+          <p style={{ fontSize: 11, color: "#555", lineHeight: 1.6 }}>Cuando completes todas las reps con buena técnica → subí el peso un escalón la próxima sesión.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
