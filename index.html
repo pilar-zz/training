@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Gym Tracker</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{background:#080808;color:#f0f0f0;font-family:system-ui,-apple-system,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+  a{text-decoration:none}
+  #wrap{max-width:380px;width:100%}
+  .eyebrow{font-family:monospace;font-size:11px;letter-spacing:.18em;color:#444;text-transform:uppercase;margin-bottom:10px;text-align:center}
+  h1{font-size:26px;font-weight:800;text-align:center;margin-bottom:6px}
+  .subtitle{font-size:13px;color:#555;text-align:center;margin-bottom:36px}
+  .cards{display:flex;flex-direction:column;gap:14px}
+  .card{display:block;background:#141414;border:1.5px solid #222;border-radius:16px;padding:22px 20px;transition:border-color .15s,transform .1s}
+  .card:active{transform:scale(0.98)}
+  .card.pilar{border-color:#222}
+  .card.pilar:active{border-color:#a8f040}
+  .card.paula{border-color:#222}
+  .card.paula:active{border-color:#f0a830}
+  .card-top{display:flex;align-items:center;gap:14px}
+  .card-emoji{font-size:32px}
+  .card-name{font-size:19px;font-weight:700;color:#f0f0f0}
+  .card-sub{font-size:12px;color:#555;margin-top:2px}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <p class="eyebrow">Gym Tracker</p>
+  <h1>¿Quién eres?</h1>
+  <p class="subtitle">Elegí tu plan para continuar</p>
+  <div class="cards">
+    <a class="card pilar" href="pilar.html">
+      <div class="card-top">
+        <span class="card-emoji">💪</span>
+        <div>
+          <div class="card-name">Pilar</div>
+          <div class="card-sub">4 días · Fuerza + Muay Thai</div>
+        </div>
+      </div>
+    </a>
+    <a class="card paula" href="paula.html">
+      <div class="card-top">
+        <span class="card-emoji">⚡</span>
+        <div>
+          <div class="card-name">Paula</div>
+          <div class="card-sub">4 días · Full Body + Tren Sup/Inf</div>
+        </div>
+      </div>
+    </a>
+  </div>
+</div>
+</body>
+</html>
