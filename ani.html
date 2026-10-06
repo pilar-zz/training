@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Plan de Ani</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{background:#080808;color:#f0f0f0;font-family:system-ui,-apple-system,sans-serif;min-height:100%}
+  body{padding-bottom:60px}
+  button{font-family:inherit;cursor:pointer}
+  input,textarea{font-family:inherit}
+  .screen{display:none;min-height:100vh;background:#080808}
+  .screen.active{display:block}
+  .inner{max-width:460px;margin:0 auto;padding:24px 15px 50px}
+  .eyebrow{font-family:monospace;font-size:10px;letter-spacing:.18em;color:#444;text-transform:uppercase;margin-bottom:6px}
+  h1{font-size:27px;font-weight:800;line-height:1.1;margin-bottom:4px}
+  .subtitle{font-size:13px;color:#555;margin-bottom:20px}
+  .back-link{display:inline-block;font-size:11px;color:#444;margin-bottom:18px;text-decoration:none;border:1px solid #222;border-radius:8px;padding:5px 11px}
+
+  .info-banner{background:#111;border:1px solid #1e1e1e;border-radius:12px;padding:14px 16px;margin-bottom:22px}
+  .info-row{display:flex;gap:10px;margin-bottom:10px;align-items:flex-start}
+  .info-row:last-child{margin-bottom:0}
+  .info-icon{font-size:15px;flex-shrink:0;margin-top:1px}
+  .info-text{font-size:12px;color:#888;line-height:1.55}
+  .info-text b{color:#ccc}
+
+  .w-card{background:#141414;border:1.5px solid #222;border-radius:14px;padding:16px 18px;cursor:pointer;position:relative;margin-bottom:11px;transition:border-color .15s}
+  .w-card.done{border-color:var(--c)}
+  .w-card-top{display:flex;align-items:center;gap:12px}
+  .w-emoji{font-size:25px}
+  .w-info{flex:1}
+  .w-name{font-size:16px;font-weight:700}
+  .w-meta{font-size:11px;color:#444;margin-top:2px}
+  .done-badge{position:absolute;top:12px;right:14px;font-size:10px;font-weight:800;padding:3px 9px;border-radius:20px;background:var(--c);color:#000}
+  .progress-wrap{margin-top:10px}
+  .progress-label{display:flex;justify-content:space-between;margin-bottom:4px;font-size:11px;color:#555}
+  .progress-label span:last-child{font-family:monospace;color:var(--c)}
+  .progress-bar{height:3px;background:#222;border-radius:2px}
+  .progress-fill{height:100%;border-radius:2px;background:var(--c);transition:width .3s}
+
+  #sticky-header{position:sticky;top:0;z-index:50;background:#080808f2;backdrop-filter:blur(10px);border-bottom:1px solid #181818;padding:11px 15px}
+  #sticky-inner{max-width:460px;margin:0 auto}
+  #header-row{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+  #back-btn{background:#1a1a1a;border:1px solid #2a2a2a;color:#777;border-radius:8px;padding:5px 11px;font-size:12px}
+  #w-title{flex:1;display:flex;align-items:center;gap:8px;font-size:16px;font-weight:700}
+  #w-count{font-size:12px;font-family:monospace;font-weight:700}
+  #header-progress{height:3px;background:#1e1e1e;border-radius:2px}
+  #header-progress-fill{height:100%;border-radius:2px;transition:width .25s}
+
+  .block{margin-bottom:20px}
+  .block-toggle{width:100%;display:flex;justify-content:space-between;align-items:center;background:none;border:none;padding:7px 0;margin-bottom:7px}
+  .block-name{font-size:10px;font-family:monospace;letter-spacing:.14em;color:#555;text-transform:uppercase;text-align:left}
+  .block-arrow{font-size:12px;color:#444}
+
+  .ex-card{background:#131313;border:1.5px solid #1f1f1f;border-radius:12px;padding:12px 12px 10px;margin-bottom:9px;transition:background .15s,border-color .15s}
+  .ex-card.checked{border-color:var(--c)}
+  .ex-card.skipped{border-color:#555;opacity:.7}
+  .ex-row{display:flex;gap:10px;align-items:flex-start}
+  .checkbox{width:22px;height:22px;min-width:22px;border-radius:6px;border:2px solid #333;background:transparent;display:flex;align-items:center;justify-content:center;margin-top:2px;flex-shrink:0;transition:background .15s,border-color .15s}
+  .checkbox.on{background:var(--c);border-color:var(--c)}
+  .checkbox.on::after{content:'✓';font-size:12px;color:#000;font-weight:900;line-height:1}
+  .checkbox.skip{background:#333;border-color:#555}
+  .checkbox.skip::after{content:'–';font-size:14px;color:#aaa;font-weight:900;line-height:1}
+  .ex-body{flex:1;min-width:0}
+  .skip-badge{font-size:9px;font-family:monospace;color:#888;background:#1e1e1e;border:1px solid #333;border-radius:4px;padding:1px 6px;margin-bottom:3px;display:inline-block}
+  .ex-top{display:flex;align-items:flex-start;justify-content:space-between;gap:6px}
+  .ex-name-row{display:flex;align-items:center;gap:6px;flex:1}
+  .ex-name{font-size:13px;font-weight:600;color:#e0e0e0;line-height:1.35;transition:color .15s}
+  .ex-card.checked .ex-name{color:var(--c)}
+  .ex-card.skipped .ex-name{color:#555}
+  .help-btn{width:18px;height:18px;min-width:18px;border-radius:50%;border:1.5px solid #3a3a3a;background:none;color:#666;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .ex-sets{font-size:10px;font-family:monospace;font-weight:700;color:var(--c);white-space:nowrap;padding:2px 7px;border-radius:4px;flex-shrink:0;border:1px solid}
+  .ex-note{font-size:11px;color:#555;margin-top:4px;line-height:1.5}
+
+  .sets-table{margin-top:10px;border-top:1px solid #1f1f1f;padding-top:9px}
+  .set-row{display:grid;grid-template-columns:46px 1fr 26px;align-items:center;gap:8px;margin-bottom:6px}
+  .set-label{font-size:11px;color:#555;font-family:monospace}
+  .set-input{width:100%;background:#0c0c0c;border:1px solid #252525;border-radius:6px;padding:5px 9px;color:#f0f0f0;font-size:12px;outline:none}
+  .set-input.filled{border-color:var(--c)}
+  .set-del{width:24px;height:24px;border:none;background:none;color:#3a3a3a;font-size:15px;display:flex;align-items:center;justify-content:center;border-radius:6px}
+  .add-set-btn{margin-top:7px;width:100%;background:none;border:1px dashed #2a2a2a;border-radius:7px;padding:6px;color:#444;font-size:11px}
+  .field-label{font-size:11px;color:#555;font-family:monospace;margin-bottom:6px}
+
+  .ex-max{margin-top:7px;font-size:11px;color:#555;display:flex;align-items:center;gap:6px}
+  .ex-max b{color:var(--c)}
+  .mini-hist-toggle{background:none;border:none;font-size:11px;color:#444;padding:0;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+  .mini-hist{display:none;margin-top:7px;background:#0c0c0c;border-radius:8px;padding:9px 10px}
+  .mini-hist.open{display:block}
+  .mini-hist-row{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:5px;gap:8px}
+  .mini-hist-row:last-child{margin-bottom:0}
+  .mini-hist-date{font-size:10px;font-family:monospace;color:#555;flex-shrink:0}
+  .mini-hist-pills{display:flex;gap:5px;flex-wrap:wrap}
+  .mini-pill{font-size:10px;font-family:monospace;background:#141414;border:1px solid #252525;border-radius:4px;padding:2px 6px;color:#ccc}
+  .mini-pill b{color:var(--c)}
+  .mini-skipped{font-size:10px;font-family:monospace;color:#555;font-style:italic}
+
+  .ex-actions{display:flex;gap:7px;margin-top:9px;flex-wrap:wrap}
+  .skip-btn{background:none;border:1px solid #2a2a2a;border-radius:7px;padding:4px 10px;color:#555;font-size:11px;display:flex;align-items:center;gap:4px}
+  .skip-btn.active{color:#888;border-color:#555}
+
+  .notes-section{margin-top:24px}
+  .notes-label{font-size:10px;font-family:monospace;color:#444;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px}
+  .notes-input{width:100%;background:#111;border:1px solid #222;border-radius:10px;padding:12px 14px;color:#ccc;font-size:13px;outline:none;resize:none;line-height:1.5;min-height:90px}
+  .notes-input::placeholder{color:#333}
+
+  #complete-btn{width:100%;padding:14px;border-radius:13px;font-size:15px;font-weight:800;border:2px solid var(--c);cursor:pointer;transition:all .2s;margin-top:20px;background:#161616;color:var(--c)}
+  #reset-btn{width:100%;background:none;border:1px solid #222;border-radius:9px;padding:9px;color:#444;font-size:11px;margin-top:9px}
+  .tip-box{margin-top:20px;padding:12px 15px;background:#111;border-radius:10px;border:1px solid #1a1a1a}
+  .tip-label{font-size:10px;font-family:monospace;color:#444;text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px}
+  .tip-text{font-size:11px;color:#555;line-height:1.6}
+
+  #help-overlay{display:none;position:fixed;inset:0;background:#000000cc;z-index:100;align-items:center;justify-content:center;padding:20px}
+  #help-overlay.open{display:flex}
+  #help-modal{background:#161616;border:1px solid #2a2a2a;border-radius:16px;max-width:380px;width:100%;max-height:80vh;overflow-y:auto;padding:20px;position:relative}
+  #help-modal h3{font-size:16px;font-weight:700;margin-bottom:10px;color:#f0f0f0;padding-right:20px}
+  .help-desc{font-size:13px;color:#999;line-height:1.6;margin-bottom:14px}
+  .help-tips-label{font-size:10px;font-family:monospace;color:#b47cf0;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px}
+  #help-modal ul{list-style:none}
+  #help-modal li{font-size:13px;color:#ccc;line-height:1.5;margin-bottom:7px;padding-left:18px;position:relative}
+  #help-modal li::before{content:'⚠';position:absolute;left:0;font-size:11px;color:#b47cf0}
+  #help-close{position:absolute;top:14px;right:14px;width:26px;height:26px;border-radius:50%;border:1px solid #333;background:#1e1e1e;color:#888;font-size:13px;display:flex;align-items:center;justify-content:center}
+
+  .sync-status{font-size:10px;font-family:monospace;padding:3px 9px;border-radius:20px;border:1px solid;display:inline-block;margin-left:8px}
+  .sync-status.ok{color:#4a8;border-color:#2a4a3a;background:#0d1a15}
+  .sync-status.saving{color:#888;border-color:#333;background:#141414}
+  .sync-status.err{color:#c66;border-color:#4a2a2a;background:#1a0d0d}
+
+  /* AUTH */
+  #auth-overlay{display:flex;position:fixed;inset:0;background:#080808;z-index:200;align-items:center;justify-content:center;padding:24px}
+  #auth-box{max-width:320px;width:100%;text-align:center}
+  #auth-box h2{font-size:22px;font-weight:800;margin-bottom:6px}
+  #auth-box p{font-size:13px;color:#555;margin-bottom:20px}
+  #auth-input{width:100%;background:#141414;border:1.5px solid #2a2a2a;border-radius:12px;padding:14px;color:#f0f0f0;font-size:20px;text-align:center;letter-spacing:.3em;outline:none;margin-bottom:12px}
+  #auth-input:focus{border-color:#b47cf0}
+  #auth-btn{width:100%;background:#b47cf0;color:#000;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:800}
+  #auth-err{color:#c66;font-size:12px;margin-top:12px;min-height:16px;margin-bottom:0}
+</style>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyCcRDS5SD1EbvBPZYvVwJjh4Nteyq7lxp4",
+    authDomain: "training-4dc4a.firebaseapp.com",
+    projectId: "training-4dc4a",
+    storageBucket: "training-4dc4a.firebasestorage.app",
+    messagingSenderId: "1014114936259",
+    appId: "1:1014114936259:web:a84feec483dcf7b208c976"
+  };
+  try { firebase.initializeApp(firebaseConfig); window._db = firebase.firestore(); }
+  catch(e){ window._db = null; }
+</script>
+</head>
+<body>
+
+<!-- AUTH GATE -->
+<div id="auth-overlay">
+  <div id="auth-box">
+    <h2>Plan de Ani</h2>
+    <p>Ingresá tu PIN para entrar</p>
+    <input id="auth-input" type="password" inputmode="numeric" placeholder="PIN">
+    <button id="auth-btn" onclick="tryAuth()">Entrar</button>
+    <p id="auth-err"></p>
+  </div>
+</div>
+
+<!-- HOME -->
+<div id="home-screen" class="screen active">
+  <div class="inner">
+    <a class="back-link" href="index.html">← Cambiar de usuario</a>
+    <span class="sync-status saving" id="sync-status">conectando…</span>
+    <p class="eyebrow">Plan personalizado</p>
+    <h1>Plan de Ani</h1>
+    <p class="subtitle">Elegí el entrenamiento de hoy</p>
+    <div class="info-banner">
+      <div class="info-row"><span class="info-icon">🧘</span><span class="info-text"><b>Calentá siempre antes</b> de la parte de fuerza. El calentamiento son 3 vueltas al circuito.</span></div>
+      <div class="info-row"><span class="info-icon">⏱️</span><span class="info-text"><b>Fuerza:</b> 3 series de 40 seg de trabajo + 20 seg de descanso. Anotá cuántas repeticiones hiciste en cada serie.</span></div>
+      <div class="info-row"><span class="info-icon">💪</span><span class="info-text"><b>Plancha:</b> aguantá lo que puedas y anotá el tiempo, para ir superándote.</span></div>
+      <div class="info-row"><span class="info-icon">🤸</span><span class="info-text"><b>Al final, estirá.</b></span></div>
+    </div>
+    <div id="cards-container"></div>
+  </div>
+</div>
+
+<!-- WORKOUT -->
+<div id="workout-screen" class="screen">
+  <div id="sticky-header">
+    <div id="sticky-inner">
+      <div id="header-row">
+        <button id="back-btn" onclick="goHome()">← Volver</button>
+        <div id="w-title"></div>
+        <span id="w-count"></span>
+      </div>
+      <div id="header-progress"><div id="header-progress-fill"></div></div>
+    </div>
+  </div>
+  <div class="inner">
+    <div id="blocks-container"></div>
+    <div class="notes-section">
+      <p class="notes-label">📝 Notas de la sesión</p>
+      <textarea class="notes-input" id="session-notes" placeholder="Ej: la plancha me costó, el fast feet lo hice completo..." rows="4"></textarea>
+    </div>
+    <button id="complete-btn" onclick="toggleComplete()">✓ Terminar y guardar sesión</button>
+    <button id="reset-btn" onclick="resetSession()">Vaciar sin guardar (empezar de nuevo)</button>
+    <div class="tip-box">
+      <p class="tip-label">Progresión</p>
+      <p class="tip-text">Cada sesión que termines queda guardada. Mirá tus marcas anteriores en cada ejercicio para superarte.</p>
+    </div>
+  </div>
+</div>
+
+<!-- HELP MODAL -->
+<div id="help-overlay" onclick="if(event.target===this) closeHelp()">
+  <div id="help-modal">
+    <button id="help-close" onclick="closeHelp()">✕</button>
+    <h3 id="help-title"></h3>
+    <p class="help-desc" id="help-desc"></p>
+    <p class="help-tips-label">Tips</p>
+    <ul id="help-tips"></ul>
+  </div>
+</div>
+
+<script>
+// unit: "reps" (repeticiones), "seg" (tiempo), o "kg" (peso, default). Define el registro.
+const COLOR="#b47cf0";
+const WORKOUTS = [
+  {
+    id:"ani1", label:"Entrenamiento 1", emoji:"🔥", color:COLOR,
+    blocks:[
+      { name:"Calentamiento · 3 vueltas al circuito", warmup:true, exercises:[
+        {id:"a1_w1",name:"Trote en el lugar con rotación de hombros",reps:"x10",note:"Trotá suave en el lugar mientras rotás los hombros hacia atrás."},
+        {id:"a1_w2",name:"Jumping jacks",reps:"x10",note:"Saltos abriendo y cerrando piernas y brazos."},
+        {id:"a1_w3",name:"Puente de glúteo (3 seg arriba)",reps:"x10",note:"Acostada, subí la cadera y apretá el glúteo 3 segundos arriba antes de bajar.",
+          help:{desc:"Acostada boca arriba con las rodillas flexionadas y los pies apoyados, subí la cadera apretando los glúteos hasta formar una línea recta. Mantené 3 segundos arriba y bajá con control.",tips:["Apretá el glúteo, no arquees la espalda baja","Los pies quedan firmes en el suelo"]}},
+        {id:"a1_w4",name:"Dead bugs",reps:"x10",note:"Acostada, bajás brazo y pierna contrarios lentamente.",
+          help:{desc:"Acostada boca arriba, brazos hacia el techo y rodillas en 90°. Bajá lentamente un brazo y la pierna contraria sin despegar la espalda baja del suelo. Volvé y alterná.",tips:["La espalda baja pegada al suelo todo el tiempo","Movimiento lento y controlado"]}},
+      ]},
+      { name:"Fuerza · 40 seg trabajo / 20 seg descanso · 3 series", exercises:[
+        {id:"a1_f1",name:"Sentadilla sumo con rebote",reps:"40 seg",unit:"reps",note:"Pies anchos, puntas hacia afuera. Bajá a la sentadilla y hacé un pequeño rebote abajo antes de subir. Anotá cuántas hiciste.",
+          help:{desc:"Parada con los pies más anchos que los hombros y las puntas hacia afuera, bajá a la sentadilla. Abajo hacé un pequeño rebote (bajás-subís unos centímetros) y después subí del todo.",tips:["Las rodillas siguen la dirección de los pies","Pecho arriba, no te vayas hacia adelante"]}},
+        {id:"a1_f2",name:"Fondo de tríceps",reps:"40 seg",unit:"reps",note:"Manos en un banco o silla detrás tuyo, bajás flexionando los codos. Anotá las repeticiones.",
+          help:{desc:"Sentada al borde de un banco o silla, apoyá las manos al costado de la cadera y deslizá el cuerpo hacia adelante. Bajá flexionando los codos hacia atrás y empujá para subir.",tips:["Los codos van hacia atrás, no hacia los lados","Mantené la espalda cerca del banco"]}},
+        {id:"a1_f3",name:"Plancha con toque de hombro contrario",reps:"40 seg",unit:"reps",note:"En plancha, tocás el hombro contrario alternando. Anotá los toques totales.",
+          help:{desc:"En posición de plancha alta (sobre las manos), tocá con una mano el hombro contrario, volvé y alterná. Mantené la cadera lo más quieta posible.",tips:["No dejes que la cadera se balancee de lado a lado","Pies un poco separados ayuda al equilibrio"]}},
+        {id:"a1_f4",name:"Russian twists",reps:"40 seg",unit:"reps",note:"Sentada, torso inclinado atrás, rotás de lado a lado. Anotá las repeticiones.",
+          help:{desc:"Sentada con el torso inclinado hacia atrás y las rodillas flexionadas, rotá el torso de un lado al otro tocando el suelo a cada lado.",tips:["El giro viene del torso, no de los brazos","Si querés más fácil, apoyá los talones"]}},
+      ]},
+      { name:"Trabajo final", exercises:[
+        {id:"a1_tf1",name:"Fast feet (pies rápidos)",reps:"4 min · 30s/30s",unit:"reps",note:"4 minutos en total: 30 seg de pies rápidos + 30 seg de descanso. Anotá cuántos pasos lográs.",
+          help:{desc:"Parada con las rodillas un poco flexionadas, movés los pies lo más rápido posible en el lugar (como corriendo sin avanzar), en puntas de pie.",tips:["Mantené el pecho erguido","Pasos cortos y muy rápidos"]}},
+        {id:"a1_tf2",name:"Plancha — lo que aguantes",reps:"máx tiempo",unit:"seg",note:"Aguantá la plancha lo que puedas y anotá el tiempo en segundos. Mirá tu máximo anterior para superarte.",
+          help:{desc:"Apoyada en antebrazos y puntas de los pies, cuerpo en línea recta. Aguantá el mayor tiempo posible manteniendo buena técnica.",tips:["No dejes caer la cadera","Cortá cuando la técnica se rompe, no sigas mal"]}},
+      ]},
+      { name:"Estiramiento", warmup:true, exercises:[
+        {id:"a1_e1",name:"Hombros contra la pared",reps:"",note:"Apoyá el brazo contra la pared y girá el cuerpo para estirar el pecho y el hombro."},
+        {id:"a1_e2",name:"Plegada — intento tocar los pies",reps:"",note:"De pie o sentada, bajá el torso hacia las piernas intentando tocar los pies, sin rebotar."},
+        {id:"a1_e3",name:"Torsión de tronco",reps:"",note:"Sentada o acostada, girá el tronco hacia un lado y después al otro, manteniendo unos segundos."},
+      ]},
+    ]
+  },
+  {
+    id:"ani2", label:"Entrenamiento 2", emoji:"🔥", color:COLOR,
+    blocks:[
+      { name:"Calentamiento · 3 vueltas al circuito", warmup:true, exercises:[
+        {id:"a2_w1",name:"Talones al culo con salto",reps:"x10",note:"Trotando en el lugar, llevá los talones hacia los glúteos con un pequeño salto."},
+        {id:"a2_w2",name:"Toco pie con brazo contrario",reps:"x10",note:"De pie, llevá la mano hacia el pie contrario alternando (toque cruzado)."},
+        {id:"a2_w3",name:"Sentadilla",reps:"x10",note:"Sentadilla suave, ritmo controlado, pecho arriba."},
+        {id:"a2_w4",name:"Leg lifts (elevación de piernas)",reps:"x10",note:"Acostada, piernas casi rectas, subilas y bajalas sin despegar la lumbar.",
+          help:{desc:"Acostada boca arriba con las piernas juntas y casi rectas, subilas hasta la vertical y bajalas despacio sin que la espalda baja se despegue del suelo.",tips:["Si te cuesta, doblá un poco las rodillas","Lumbar pegada al suelo todo el tiempo"]}},
+      ]},
+      { name:"Fuerza · 40 seg trabajo / 20 seg descanso · 3 series", exercises:[
+        {id:"a2_f1",name:"Monster squat (sentadilla con pasos laterales)",reps:"40 seg",unit:"reps",note:"En posición de sentadilla, caminá de costado con pasos (con banda si tenés). Anotá los pasos.",
+          help:{desc:"Bajá a una media sentadilla y, manteniéndote baja, caminá de costado dando pasos hacia un lado y después al otro. Si tenés banda elástica, ponela por encima de las rodillas.",tips:["Mantené las rodillas separadas, no dejes que se junten","Quedate baja todo el recorrido"]}},
+        {id:"a2_f2",name:"Estocada hacia adelante alternando pierna",reps:"40 seg",unit:"reps",note:"Paso largo hacia adelante bajando la rodilla, alternás pierna. Anotá las repeticiones.",
+          help:{desc:"Dá un paso largo hacia adelante bajando hasta que ambas rodillas formen 90°. Empujá con el talón de adelante para volver y alterná de pierna.",tips:["La rodilla de adelante no pasa la punta del pie","Tronco erguido"]}},
+        {id:"a2_f3",name:"Crunches",reps:"40 seg",unit:"reps",note:"Acostada, rodillas flexionadas, subís el torso contrayendo el abdomen. Anotá las repeticiones.",
+          help:{desc:"Acostada con las rodillas flexionadas, llevá los hombros hacia arriba contrayendo el abdomen, sin tirar del cuello.",tips:["No jales el cuello con las manos","Movimiento corto y controlado"]}},
+        {id:"a2_f4",name:"Jumping jacks",reps:"40 seg",unit:"reps",note:"Saltos abriendo y cerrando piernas y brazos. Anotá las repeticiones.",
+          help:{desc:"Saltá abriendo las piernas hacia los lados mientras levantás los brazos sobre la cabeza, y volvé.",tips:["Aterrizá con las rodillas un poco flexionadas"]}},
+      ]},
+      { name:"Trabajo final", exercises:[
+        {id:"a2_tf1",name:"Bring Sally Up",reps:"desafío",unit:"seg",note:"El desafío de la canción: bajás en 'down' y subís en 'up'. Aguantá lo que puedas y anotá los segundos que duraste.",
+          help:{desc:"Con la canción 'Bring Sally Up': cada vez que dice 'up' subís y cuando dice 'down' bajás y te mantenés en la posición baja (sentadilla o flexión). El desafío es aguantar toda la canción.",tips:["Elegí sentadilla o flexión según cómo te sientas","Anotá hasta qué segundo llegaste para superarte"]}},
+      ]},
+      { name:"Estiramiento", warmup:true, exercises:[
+        {id:"a2_e1",name:"Glúteos acostada",reps:"",note:"Acostada, cruzá un tobillo sobre la rodilla contraria y traé la pierna hacia el pecho."},
+        {id:"a2_e2",name:"Cuádriceps",reps:"",note:"De pie, llevá el talón hacia el glúteo sosteniendo el pie con la mano."},
+        {id:"a2_e3",name:"Toco pies",reps:"",note:"Bajá el torso hacia las piernas intentando tocar los pies, sin rebotar."},
+      ]},
+    ]
+  },
+];
+
+function unitInfo(u){
+  if(u==="reps") return {label:"Reps", suffix:"reps", ph:"nº reps"};
+  if(u==="seg")  return {label:"Tiempo", suffix:"seg", ph:"segundos"};
+  return {label:"Peso", suffix:"kg", ph:"peso / nivel"};
+}
+
+const DEFAULT_SETS=3;
+const SKEY="ani_tracker_v1";
+const USER_ID="ani";
+let state={history:{},current:{},collapsed:{}};
+let saveTimer=null;
+
+function setSync(txt,cls){const el=document.getElementById('sync-status');if(el){el.textContent=txt;el.className='sync-status '+cls;}}
+function loadLocal(){try{const r=localStorage.getItem(SKEY);if(r)state=JSON.parse(r);}catch(e){}}
+function saveLocal(){try{localStorage.setItem(SKEY,JSON.stringify(state));}catch(e){}}
+
+function save(){
+  saveLocal();
+  if(!window._db){ setSync('modo local','err'); return; }
+  setSync('guardando…','saving');
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(async()=>{
+    try{
+      await window._db.collection('users').doc(USER_ID).set({data:JSON.stringify(state),updated:Date.now()});
+      setSync('✓ sincronizado','ok');
+    }catch(e){ setSync('sin conexión — guardado local','err'); }
+  },700);
+}
+
+async function boot(){
+  loadLocal();
+  migrateIfNeeded();
+  renderHome();
+  if(!window._db){ setSync('modo local','err'); return; }
+  setSync('cargando…','saving');
+  try{
+    const doc=await window._db.collection('users').doc(USER_ID).get();
+    if(doc.exists && doc.data().data){
+      state=JSON.parse(doc.data().data);
+      migrateIfNeeded();
+      saveLocal();
+      renderHome();
+      if(currentWid) renderWorkout();
+    }
+    setSync('✓ sincronizado','ok');
+  }catch(e){ setSync('sin conexión — modo local','err'); }
+}
+
+function migrateIfNeeded(){
+  if(!state.history) state.history={};
+  if(!state.current) state.current={};
+  if(!state.collapsed) state.collapsed={};
+}
+
+function todayKey(){return new Date().toISOString().slice(0,10);}
+
+function getCurrent(wid){
+  if(!state.current) state.current={};
+  if(!state.current[wid]) state.current[wid]={checks:{},weights:{},skipped:{},notes:""};
+  const s=state.current[wid];
+  if(!s.checks)s.checks={}; if(!s.weights)s.weights={}; if(!s.skipped)s.skipped={}; if(s.notes===undefined)s.notes="";
+  return s;
+}
+function getHistory(wid){ if(!state.history)state.history={}; if(!state.history[wid])state.history[wid]=[]; return state.history[wid]; }
+function getExSets(session,exId){ if(!session.weights[exId])session.weights[exId]=new Array(DEFAULT_SETS).fill(""); return session.weights[exId]; }
+
+function getExHistory(exId,wid){
+  const entries=[];
+  getHistory(wid).forEach(sess=>{
+    const hasV=sess.weights&&sess.weights[exId]&&sess.weights[exId].some(v=>v);
+    const sk=sess.skipped&&sess.skipped[exId];
+    if(hasV||sk) entries.push({date:sess.date,sets:sess.weights?.[exId]||[],skipped:!!sk});
+  });
+  return entries.sort((a,b)=>b.date.localeCompare(a.date));
+}
+function getMaxWeight(exId,wid){
+  let max=null;
+  getHistory(wid).forEach(sess=>{
+    if(sess.weights&&sess.weights[exId]) sess.weights[exId].forEach(v=>{
+      if(v&&!isNaN(parseFloat(v))){const n=parseFloat(v); if(max===null||n>max)max=n;}
+    });
+  });
+  return max;
+}
+function getPrevWeights(wid){ const h=getHistory(wid); return h.length?(h[h.length-1].weights||{}):{}; }
+
+function countChecked(wid){
+  const s=getCurrent(wid); const w=WORKOUTS.find(w=>w.id===wid); let c=0;
+  w.blocks.forEach(b=>b.exercises.forEach(ex=>{ if(s.checks[ex.id]||s.skipped[ex.id])c++; }));
+  return c;
+}
+function countTotal(wid){ const w=WORKOUTS.find(w=>w.id===wid); return w.blocks.reduce((a,b)=>a+b.exercises.length,0); }
+function lastDone(wid){ const h=getHistory(wid); return h.length?h[h.length-1].date:null; }
+
+function showScreen(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); window.scrollTo(0,0); }
+
+let currentWid=null;
+
+function renderHome(){
+  const container=document.getElementById('cards-container'); container.innerHTML='';
+  WORKOUTS.forEach(w=>{
+    const checked=countChecked(w.id); const total=countTotal(w.id);
+    const inProg=checked>0; const last=lastDone(w.id);
+    const card=document.createElement('div'); card.className='w-card'; card.style.setProperty('--c',w.color);
+    card.innerHTML=`
+      <div class="w-card-top">
+        <span class="w-emoji">${w.emoji}</span>
+        <div class="w-info">
+          <div class="w-name">${w.label}</div>
+          <div class="w-meta">${total} ejercicios${last?' · última vez '+last:''}</div>
+        </div>
+      </div>
+      ${inProg?`<div class="progress-wrap"><div class="progress-label"><span>En progreso</span><span>${checked}/${total}</span></div><div class="progress-bar"><div class="progress-fill" style="width:${(checked/total)*100}%"></div></div></div>`:''}
+    `;
+    card.onclick=()=>openWorkout(w.id); container.appendChild(card);
+  });
+}
+
+function openWorkout(wid){ currentWid=wid; showScreen('workout-screen'); renderWorkout(); }
+function goHome(){ currentWid=null; showScreen('home-screen'); renderHome(); }
+
+function renderWorkout(){
+  const w=WORKOUTS.find(w=>w.id===currentWid);
+  const s=getCurrent(currentWid);
+  const prev=getPrevWeights(currentWid);
+  const checked=countChecked(currentWid); const total=countTotal(currentWid); const prog=total>0?checked/total:0;
+
+  document.getElementById('w-title').innerHTML=`<span>${w.emoji}</span><span>${w.label}</span>`;
+  document.getElementById('w-count').textContent=checked+'/'+total;
+  document.getElementById('w-count').style.color=w.color;
+  document.getElementById('header-progress-fill').style.width=(prog*100)+'%';
+  document.getElementById('header-progress-fill').style.background=w.color;
+  const btn=document.getElementById('complete-btn'); btn.style.setProperty('--c',w.color);
+
+  const notesEl=document.getElementById('session-notes');
+  notesEl.value=s.notes||''; notesEl.oninput=()=>{s.notes=notesEl.value;save();};
+
+  const container=document.getElementById('blocks-container'); container.innerHTML='';
+  w.blocks.forEach((block,bi)=>{
+    const bkey=currentWid+'_'+bi; const collapsed=!!state.collapsed[bkey];
+    const blockEl=document.createElement('div'); blockEl.className='block';
+    const tb=document.createElement('button'); tb.className='block-toggle';
+    tb.innerHTML=`<span class="block-name">${block.name}</span><span class="block-arrow">${collapsed?'▼':'▲'}</span>`;
+    tb.onclick=()=>{state.collapsed[bkey]=!state.collapsed[bkey];save();renderWorkout();};
+    blockEl.appendChild(tb);
+
+    if(!collapsed){
+      block.exercises.forEach(ex=>{
+        const chk=!!s.checks[ex.id]; const skipped=!!s.skipped[ex.id];
+        const isWarmup=!!block.warmup;
+        const sets=isWarmup?null:getExSets(s,ex.id);
+        const prevSets=prev[ex.id]||[];
+        const ui=unitInfo(ex.unit);
+        const history=isWarmup?[]:getExHistory(ex.id,currentWid);
+        const maxW=isWarmup?null:getMaxWeight(ex.id,currentWid);
+
+        const card=document.createElement('div');
+        let cc='ex-card'; if(chk)cc+=' checked'; if(skipped)cc+=' skipped'; card.className=cc;
+        card.style.setProperty('--c',w.color);
+
+        let setsHtml='';
+        if(!isWarmup&&!skipped){
+          setsHtml='<div class="sets-table"><p class="field-label">'+ui.label+' por serie:</p>';
+          sets.forEach((val,si)=>{
+            const pv=prevSets[si]||'';
+            setsHtml+=`<div class="set-row"><span class="set-label">Serie ${si+1}</span>
+              <input class="set-input${val?' filled':''}" style="--c:${w.color}" type="text"
+              placeholder="${pv?('últ: '+pv):ui.ph}" value="${val}" data-exid="${ex.id}" data-setidx="${si}">
+              ${sets.length>3?`<button class="set-del" data-exid="${ex.id}" data-setidx="${si}">✕</button>`:'<span></span>'}</div>`;
+          });
+          setsHtml+=`<button class="add-set-btn" data-exid="${ex.id}">+ Añadir serie</button></div>`;
+        }
+
+        let maxHtml='';
+        if(!isWarmup){
+          const histPrev=history.filter(e=>e.date!==todayKey());
+          const maxStr=maxW!==null?`Mejor marca: <b>${maxW} ${ui.suffix}</b>`:'Sin registros aún';
+          const rows=histPrev.slice(0,5).map(e=>{
+            if(e.skipped) return `<div class="mini-hist-row"><span class="mini-hist-date">${e.date}</span><span class="mini-skipped">omitido</span></div>`;
+            const pills=e.sets.filter(v=>v).map((v,i)=>`<span class="mini-pill">S${i+1}: <b>${v}</b></span>`).join('');
+            return `<div class="mini-hist-row"><span class="mini-hist-date">${e.date}</span><div class="mini-hist-pills">${pills}</div></div>`;
+          }).join('');
+          const hid='mh_'+ex.id;
+          maxHtml=`<div class="ex-max"><span>${maxStr}</span>${histPrev.length>0?`<button class="mini-hist-toggle" onclick="toggleMiniHist('${hid}')">ver sesiones</button>`:''}</div>${histPrev.length>0?`<div class="mini-hist" id="${hid}">${rows}</div>`:''}`;
+        }
+
+        card.innerHTML=`
+          <div class="ex-row">
+            <div class="checkbox${chk?' on':skipped?' skip':''}" id="cb_${ex.id}"></div>
+            <div class="ex-body">
+              ${skipped?'<span class="skip-badge">OMITIDO</span>':''}
+              <div class="ex-top">
+                <div class="ex-name-row">
+                  <span class="ex-name">${ex.name}</span>
+                  ${ex.help?`<button class="help-btn" id="hb_${ex.id}">?</button>`:''}
+                </div>
+                ${ex.reps?`<span class="ex-sets" style="color:${w.color};background:${w.color}22;border-color:${w.color}44">${ex.reps}</span>`:''}
+              </div>
+              <p class="ex-note">${ex.note}</p>
+              ${setsHtml}
+              ${maxHtml}
+              <div class="ex-actions">
+                <button class="skip-btn${skipped?' active':''}" id="sk_${ex.id}"><span>${skipped?'↩ Deshacer omisión':'⏭ Omitir'}</span></button>
+              </div>
+            </div>
+          </div>`;
+
+        card.querySelector('#cb_'+ex.id).onclick=()=>{
+          if(skipped){s.skipped[ex.id]=false;s.checks[ex.id]=false;} else {s.checks[ex.id]=!s.checks[ex.id];}
+          save();renderWorkout();
+        };
+        card.querySelector('#sk_'+ex.id).onclick=()=>{
+          if(skipped){s.skipped[ex.id]=false;s.checks[ex.id]=false;} else {s.skipped[ex.id]=true;s.checks[ex.id]=false;}
+          save();renderWorkout();
+        };
+        if(ex.help){ const hb=card.querySelector('#hb_'+ex.id); if(hb)hb.onclick=(e)=>{e.stopPropagation();openHelp(ex.name,ex.help);}; }
+
+        if(!isWarmup&&!skipped){
+          card.querySelectorAll('.set-input').forEach(inp=>{
+            inp.oninput=e=>{
+              s.weights[e.target.dataset.exid][parseInt(e.target.dataset.setidx)]=e.target.value;
+              e.target.classList.toggle('filled',!!e.target.value);
+              save();
+              const cd=countChecked(currentWid),tt=countTotal(currentWid);
+              document.getElementById('w-count').textContent=cd+'/'+tt;
+              document.getElementById('header-progress-fill').style.width=(tt>0?cd/tt*100:0)+'%';
+            };
+          });
+          card.querySelectorAll('.set-del').forEach(d=>{ d.onclick=()=>{ s.weights[d.dataset.exid].splice(parseInt(d.dataset.setidx),1); save();renderWorkout(); }; });
+          const ab=card.querySelector('.add-set-btn'); if(ab)ab.onclick=()=>{ s.weights[ex.id].push(""); save();renderWorkout(); };
+        }
+        blockEl.appendChild(card);
+      });
+    }
+    container.appendChild(blockEl);
+  });
+}
+
+function toggleMiniHist(id){ const el=document.getElementById(id); if(el)el.classList.toggle('open'); }
+function openHelp(title,help){
+  document.getElementById('help-title').textContent=title;
+  document.getElementById('help-desc').textContent=help.desc;
+  const tl=document.getElementById('help-tips'); tl.innerHTML='';
+  help.tips.forEach(t=>{const li=document.createElement('li');li.textContent=t;tl.appendChild(li);});
+  document.getElementById('help-overlay').classList.add('open');
+}
+function closeHelp(){ document.getElementById('help-overlay').classList.remove('open'); }
+
+function toggleComplete(){
+  const s=getCurrent(currentWid);
+  const hayAlgo=Object.values(s.checks).some(Boolean)||Object.values(s.skipped).some(Boolean)||Object.values(s.weights).some(a=>Array.isArray(a)&&a.some(v=>v));
+  if(!hayAlgo){ alert('Marcá al menos un ejercicio antes de terminar la sesión.'); return; }
+  getHistory(currentWid).push({date:todayKey(),weights:JSON.parse(JSON.stringify(s.weights)),skipped:JSON.parse(JSON.stringify(s.skipped)),notes:s.notes||""});
+  state.current[currentWid]={checks:{},weights:{},skipped:{},notes:""};
+  save();renderWorkout();
+  alert('✓ Sesión guardada. Tus marcas quedaron en el historial de cada ejercicio.');
+}
+function resetSession(){ state.current[currentWid]={checks:{},weights:{},skipped:{},notes:""}; save();renderWorkout(); }
+
+// ── AUTH ──
+const PIN="1023"; const AUTH_KEY="auth_ani";
+function tryAuth(){
+  const v=document.getElementById('auth-input').value.trim();
+  if(v===PIN){
+    try{ localStorage.setItem(AUTH_KEY,"1"); }catch(e){}
+    document.getElementById('auth-overlay').style.display='none';
+  } else {
+    document.getElementById('auth-err').textContent='PIN incorrecto';
+    document.getElementById('auth-input').value='';
+  }
+}
+function checkAuth(){
+  let ok=false; try{ ok=localStorage.getItem(AUTH_KEY)==="1"; }catch(e){}
+  if(ok) document.getElementById('auth-overlay').style.display='none';
+}
+document.getElementById('auth-input').addEventListener('keydown',e=>{ if(e.key==='Enter')tryAuth(); });
+
+checkAuth();
+boot();
+</script>
+</body>
+</html>

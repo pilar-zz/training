@@ -126,6 +126,15 @@
   .sync-status.ok{color:#4a8;border-color:#2a4a3a;background:#0d1a15}
   .sync-status.saving{color:#888;border-color:#333;background:#141414}
   .sync-status.err{color:#c66;border-color:#4a2a2a;background:#1a0d0d}
+
+  #auth-overlay{display:flex;position:fixed;inset:0;background:#080808;z-index:200;align-items:center;justify-content:center;padding:24px}
+  #auth-box{max-width:320px;width:100%;text-align:center}
+  #auth-box h2{font-size:22px;font-weight:800;margin-bottom:6px}
+  #auth-box p{font-size:13px;color:#555;margin-bottom:20px}
+  #auth-input{width:100%;background:#141414;border:1.5px solid #2a2a2a;border-radius:12px;padding:14px;color:#f0f0f0;font-size:20px;text-align:center;letter-spacing:.3em;outline:none;margin-bottom:12px}
+  #auth-input:focus{border-color:#f0a830}
+  #auth-btn{width:100%;background:#f0a830;color:#000;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:800}
+  #auth-err{color:#c66;font-size:12px;margin-top:12px;min-height:16px;margin-bottom:0}
 </style>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -148,6 +157,17 @@
 </script>
 </head>
 <body>
+
+<!-- AUTH GATE -->
+<div id="auth-overlay">
+  <div id="auth-box">
+    <h2>Plan de Paula</h2>
+    <p>Ingresá tu PIN para entrar</p>
+    <input id="auth-input" type="password" inputmode="numeric" placeholder="PIN">
+    <button id="auth-btn" onclick="tryAuth()">Entrar</button>
+    <p id="auth-err"></p>
+  </div>
+</div>
 
 <!-- HOME -->
 <div id="home-screen" class="screen active">
@@ -764,6 +784,25 @@ function resetSession(){
   save();renderWorkout();
 }
 
+// ── AUTH ──
+const PIN="1234"; const AUTH_KEY="auth_paula";
+function tryAuth(){
+  const v=document.getElementById('auth-input').value.trim();
+  if(v===PIN){
+    try{ localStorage.setItem(AUTH_KEY,"1"); }catch(e){}
+    document.getElementById('auth-overlay').style.display='none';
+  } else {
+    document.getElementById('auth-err').textContent='PIN incorrecto';
+    document.getElementById('auth-input').value='';
+  }
+}
+function checkAuth(){
+  let ok=false; try{ ok=localStorage.getItem(AUTH_KEY)==="1"; }catch(e){}
+  if(ok) document.getElementById('auth-overlay').style.display='none';
+}
+document.getElementById('auth-input').addEventListener('keydown',e=>{ if(e.key==='Enter')tryAuth(); });
+
+checkAuth();
 boot();
 </script>
 </body>
