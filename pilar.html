@@ -113,7 +113,7 @@
   #complete-btn{width:100%;padding:14px;border-radius:13px;font-size:15px;font-weight:800;border:2px solid var(--c);cursor:pointer;transition:all .2s;margin-top:20px}
   #complete-btn.off{background:#161616;color:var(--c)}
   #complete-btn.on{background:var(--c);color:#000}
-  #reset-btn{width:100%;background:none;border:1px solid #222;border-radius:9px;padding:9px;color:#444;font-size:11px;margin-top:9px;display:none}
+  #reset-btn{width:100%;background:none;border:1px solid #222;border-radius:9px;padding:9px;color:#444;font-size:11px;margin-top:9px}
   .tip-box{margin-top:20px;padding:12px 15px;background:#111;border-radius:10px;border:1px solid #1a1a1a}
   .tip-label{font-size:10px;font-family:monospace;color:#444;text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px}
   .tip-text{font-size:11px;color:#555;line-height:1.6}
@@ -180,7 +180,7 @@
       <textarea class="notes-input" id="session-notes" placeholder="Ej: hip thrust me dio dolor en la rodilla derecha, subí 2kg en curl..." rows="4"></textarea>
     </div>
     <button id="complete-btn" class="off" onclick="toggleComplete()"></button>
-    <button id="reset-btn" onclick="resetSession()">Deshacer — resetear sesión de hoy</button>
+    <button id="reset-btn" onclick="resetSession()">Vaciar sin guardar (empezar de nuevo)</button>
     <div class="tip-box">
       <p class="tip-label">Progresión</p>
       <p class="tip-text">Cuando completes las 3 series con buena técnica → subí el peso un escalón la próxima sesión.</p>
@@ -301,6 +301,7 @@ function save(){
 // Al abrir: muestra lo local al instante, después trae lo de la nube
 async function boot(){
   loadLocal();
+  migrateIfNeeded();
   renderHome();
   if(!window._db){ setSync('modo local', 'err'); return; }
   setSync('cargando…', 'saving');
@@ -308,9 +309,7 @@ async function boot(){
     const doc = await window._db.collection('users').doc(USER_ID).get();
     if(doc.exists && doc.data().data){
       state = JSON.parse(doc.data().data);
-      if(!state.sessions) state.sessions = {};
-      if(!state.swapped) state.swapped = {};
-      if(!state.collapsed) state.collapsed = {};
+      migrateIfNeeded();
       saveLocal();
       renderHome();
       if(currentWid) renderWorkout();
@@ -323,14 +322,52 @@ async function boot(){
 
 function todayKey(){ return new Date().toISOString().slice(0,10); }
 
-function getSession(wid){
-  const today=todayKey();
-  if(!state.sessions[wid]) state.sessions[wid]={};
-  if(!state.sessions[wid][today]) state.sessions[wid][today]={checks:{},weights:{},skipped:{},completed:false,notes:""};
-  const s=state.sessions[wid][today];
+// Modelo de datos:
+//   state.current[wid]  = sesión EN CURSO (lo que cargás ahora; se limpia al completar)
+//   state.history[wid]   = [ {date, weights, skipped, notes}, ... ] sesiones ARCHIVADAS
+// Al tocar "Marcar como completado" la sesión en curso se archiva en history
+// y current se vacía — la página queda limpia, conservando máximo e historial.
+
+function migrateIfNeeded(){
+  // Convierte el modelo viejo (state.sessions[wid][fecha]) al nuevo
+  if(state.sessions && !state.history){
+    state.history={};
+    state.current={};
+    Object.keys(state.sessions).forEach(wid=>{
+      state.history[wid]=[];
+      Object.keys(state.sessions[wid]).sort().forEach(date=>{
+        const sess=state.sessions[wid][date];
+        state.history[wid].push({
+          date,
+          weights: sess.weights||{},
+          skipped: sess.skipped||{},
+          notes: sess.notes||""
+        });
+      });
+    });
+    delete state.sessions;
+  }
+  if(!state.history) state.history={};
+  if(!state.current) state.current={};
+  if(!state.swapped) state.swapped={};
+  if(!state.collapsed) state.collapsed={};
+}
+
+function getCurrent(wid){
+  if(!state.current) state.current={};
+  if(!state.current[wid]) state.current[wid]={checks:{},weights:{},skipped:{},notes:""};
+  const s=state.current[wid];
+  if(!s.checks) s.checks={};
+  if(!s.weights) s.weights={};
   if(!s.skipped) s.skipped={};
   if(s.notes===undefined) s.notes="";
   return s;
+}
+
+function getHistory(wid){
+  if(!state.history) state.history={};
+  if(!state.history[wid]) state.history[wid]=[];
+  return state.history[wid];
 }
 
 function getExSets(session, exId){
@@ -338,15 +375,16 @@ function getExSets(session, exId){
   return session.weights[exId];
 }
 
+// Historial de un ejercicio: solo sesiones archivadas (todas las personas comparten
+// el formato; acá cada wid tiene su propio history)
 function getExHistory(exId){
   const entries=[];
-  Object.keys(state.sessions).forEach(wid=>{
-    Object.keys(state.sessions[wid]).forEach(date=>{
-      const sess=state.sessions[wid][date];
+  Object.keys(state.history||{}).forEach(wid=>{
+    state.history[wid].forEach(sess=>{
       const hasWeight=sess.weights&&sess.weights[exId]&&sess.weights[exId].some(v=>v);
       const wasSkipped=sess.skipped&&sess.skipped[exId];
       if(hasWeight||wasSkipped){
-        entries.push({date, sets:sess.weights?.[exId]||[], skipped:!!wasSkipped});
+        entries.push({date:sess.date, sets:sess.weights?.[exId]||[], skipped:!!wasSkipped});
       }
     });
   });
@@ -355,9 +393,8 @@ function getExHistory(exId){
 
 function getMaxWeight(exId){
   let max=null;
-  Object.keys(state.sessions).forEach(wid=>{
-    Object.keys(state.sessions[wid]).forEach(date=>{
-      const sess=state.sessions[wid][date];
+  Object.keys(state.history||{}).forEach(wid=>{
+    state.history[wid].forEach(sess=>{
       if(sess.weights&&sess.weights[exId]){
         sess.weights[exId].forEach(v=>{
           if(v&&!isNaN(parseFloat(v))){
@@ -371,15 +408,14 @@ function getMaxWeight(exId){
   return max;
 }
 
+// Pesos de la última sesión archivada de este entrenamiento (para los placeholders)
 function getPrevWeights(wid){
-  const today=todayKey();
-  const ws=state.sessions[wid]||{};
-  const dates=Object.keys(ws).filter(d=>d!==today).sort().reverse();
-  return dates.length ? (ws[dates[0]].weights||{}) : {};
+  const h=getHistory(wid);
+  return h.length ? (h[h.length-1].weights||{}) : {};
 }
 
 function countChecked(wid){
-  const s=getSession(wid);
+  const s=getCurrent(wid);
   const w=WORKOUTS.find(w=>w.id===wid);
   let count=0;
   w.blocks.forEach(b=>b.exercises.forEach(ex=>{
@@ -389,9 +425,8 @@ function countChecked(wid){
 }
 function countTotal(wid){ const w=WORKOUTS.find(w=>w.id===wid); return w.blocks.reduce((a,b)=>a+b.exercises.length,0); }
 function lastDone(wid){
-  const today=todayKey();
-  const ws=state.sessions[wid]||{};
-  return Object.keys(ws).filter(d=>d!==today&&ws[d].completed).sort().reverse()[0]||null;
+  const h=getHistory(wid);
+  return h.length ? h[h.length-1].date : null;
 }
 
 function showScreen(id){
@@ -406,8 +441,8 @@ function renderHome(){
   const container=document.getElementById('cards-container');
   container.innerHTML='';
   WORKOUTS.forEach(w=>{
-    const s=getSession(w.id);
-    const done=s.completed;
+    const s=getCurrent(w.id);
+    const done=false;
     const checked=countChecked(w.id);
     const total=countTotal(w.id);
     const inProg=checked>0&&!done;
@@ -449,7 +484,7 @@ function goHome(){
 
 function renderWorkout(){
   const w=WORKOUTS.find(w=>w.id===currentWid);
-  const s=getSession(currentWid);
+  const s=getCurrent(currentWid);
   const prev=getPrevWeights(currentWid);
   const checked=countChecked(currentWid);
   const total=countTotal(currentWid);
@@ -463,10 +498,10 @@ function renderWorkout(){
 
   const btn=document.getElementById('complete-btn');
   const resetBtn=document.getElementById('reset-btn');
-  btn.className=s.completed?'on':'off';
+  btn.className='off';
   btn.style.setProperty('--c',w.color);
-  btn.textContent=s.completed?'✓ Entrenamiento completado':'Marcar como completado';
-  resetBtn.style.display=s.completed?'block':'none';
+  btn.textContent='✓ Terminar y guardar sesión';
+  resetBtn.style.display='block';
 
   // Notes
   const notesEl=document.getElementById('session-notes');
@@ -624,18 +659,34 @@ function toggleMiniHist(id){
   if(el) el.classList.toggle('open');
 }
 
+// Terminar y guardar: archiva la sesión en curso en el historial y limpia la actual.
 function toggleComplete(){
-  const s=getSession(currentWid);
-  s.completed=!s.completed;
-  save(); renderWorkout();
+  const s=getCurrent(currentWid);
+  // ¿Hay algo que guardar? (algún peso cargado o algún ejercicio marcado/omitido)
+  const hayAlgo = Object.values(s.checks).some(Boolean)
+    || Object.values(s.skipped).some(Boolean)
+    || Object.values(s.weights).some(arr=>Array.isArray(arr)&&arr.some(v=>v));
+  if(!hayAlgo){
+    alert('Marcá al menos un ejercicio o cargá un peso antes de terminar la sesión.');
+    return;
+  }
+  getHistory(currentWid).push({
+    date: todayKey(),
+    weights: JSON.parse(JSON.stringify(s.weights)),
+    skipped: JSON.parse(JSON.stringify(s.skipped)),
+    notes: s.notes||""
+  });
+  // Limpia la sesión en curso → la página vuelve a quedar como al empezar
+  state.current[currentWid]={checks:{},weights:{},skipped:{},notes:""};
+  save();
+  renderWorkout();
+  alert('✓ Sesión guardada. Tu progreso quedó en el historial de cada ejercicio.');
 }
 
+// Limpia la sesión en curso SIN guardarla (por si te equivocaste y querés empezar de nuevo)
 function resetSession(){
-  const today=todayKey();
-  if(state.sessions[currentWid]&&state.sessions[currentWid][today]){
-    delete state.sessions[currentWid][today];
-    save(); renderWorkout();
-  }
+  state.current[currentWid]={checks:{},weights:{},skipped:{},notes:""};
+  save(); renderWorkout();
 }
 
 boot();

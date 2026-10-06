@@ -106,7 +106,7 @@
   #complete-btn{width:100%;padding:14px;border-radius:13px;font-size:15px;font-weight:800;border:2px solid var(--c);cursor:pointer;transition:all .2s;margin-top:20px}
   #complete-btn.off{background:#161616;color:var(--c)}
   #complete-btn.on{background:var(--c);color:#000}
-  #reset-btn{width:100%;background:none;border:1px solid #222;border-radius:9px;padding:9px;color:#444;font-size:11px;margin-top:9px;display:none}
+  #reset-btn{width:100%;background:none;border:1px solid #222;border-radius:9px;padding:9px;color:#444;font-size:11px;margin-top:9px}
   .tip-box{margin-top:20px;padding:12px 15px;background:#111;border-radius:10px;border:1px solid #1a1a1a}
   .tip-label{font-size:10px;font-family:monospace;color:#444;text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px}
   .tip-text{font-size:11px;color:#555;line-height:1.6}
@@ -186,7 +186,7 @@
       <textarea class="notes-input" id="session-notes" placeholder="Ej: el hip thrust me dio dolor en la rodilla, subí peso en curl..." rows="4"></textarea>
     </div>
     <button id="complete-btn" class="off" onclick="toggleComplete()"></button>
-    <button id="reset-btn" onclick="resetSession()">Deshacer — resetear sesión de hoy</button>
+    <button id="reset-btn" onclick="resetSession()">Vaciar sin guardar (empezar de nuevo)</button>
     <div class="tip-box">
       <p class="tip-label">Progresión</p>
       <p class="tip-text">Cuando completes las series con buena técnica → la próxima vez subí un poco el peso o las repeticiones.</p>
@@ -391,6 +391,7 @@ function save(){
 
 async function boot(){
   loadLocal();
+  migrateIfNeeded();
   renderHome();
   if(!window._db){ setSync('modo local','err'); return; }
   setSync('cargando…','saving');
@@ -398,8 +399,7 @@ async function boot(){
     const doc=await window._db.collection('users').doc(USER_ID).get();
     if(doc.exists && doc.data().data){
       state=JSON.parse(doc.data().data);
-      if(!state.sessions) state.sessions={};
-      if(!state.collapsed) state.collapsed={};
+      migrateIfNeeded();
       saveLocal();
       renderHome();
       if(currentWid) renderWorkout();
@@ -412,14 +412,45 @@ async function boot(){
 
 function todayKey(){return new Date().toISOString().slice(0,10);}
 
-function getSession(wid){
-  const today=todayKey();
-  if(!state.sessions[wid])state.sessions[wid]={};
-  if(!state.sessions[wid][today])state.sessions[wid][today]={checks:{},weights:{},skipped:{},completed:false,notes:""};
-  const s=state.sessions[wid][today];
-  if(!s.skipped)s.skipped={};
-  if(s.notes===undefined)s.notes="";
+// Modelo: state.current[wid] = sesión en curso ; state.history[wid] = [sesiones archivadas]
+function migrateIfNeeded(){
+  if(state.sessions && !state.history){
+    state.history={};
+    state.current={};
+    Object.keys(state.sessions).forEach(wid=>{
+      state.history[wid]=[];
+      Object.keys(state.sessions[wid]).sort().forEach(date=>{
+        const sess=state.sessions[wid][date];
+        state.history[wid].push({
+          date,
+          weights: sess.weights||{},
+          skipped: sess.skipped||{},
+          notes: sess.notes||""
+        });
+      });
+    });
+    delete state.sessions;
+  }
+  if(!state.history) state.history={};
+  if(!state.current) state.current={};
+  if(!state.collapsed) state.collapsed={};
+}
+
+function getCurrent(wid){
+  if(!state.current) state.current={};
+  if(!state.current[wid]) state.current[wid]={checks:{},weights:{},skipped:{},notes:""};
+  const s=state.current[wid];
+  if(!s.checks) s.checks={};
+  if(!s.weights) s.weights={};
+  if(!s.skipped) s.skipped={};
+  if(s.notes===undefined) s.notes="";
   return s;
+}
+
+function getHistory(wid){
+  if(!state.history) state.history={};
+  if(!state.history[wid]) state.history[wid]=[];
+  return state.history[wid];
 }
 
 function getExSets(session,exId){
@@ -429,13 +460,11 @@ function getExSets(session,exId){
 
 function getExHistory(exId,wid){
   const entries=[];
-  const ws=state.sessions[wid]||{};
-  Object.keys(ws).forEach(date=>{
-    const sess=ws[date];
+  getHistory(wid).forEach(sess=>{
     const hasWeight=sess.weights&&sess.weights[exId]&&sess.weights[exId].some(v=>v);
     const wasSkipped=sess.skipped&&sess.skipped[exId];
     if(hasWeight||wasSkipped){
-      entries.push({date,sets:sess.weights?.[exId]||[],skipped:!!wasSkipped});
+      entries.push({date:sess.date,sets:sess.weights?.[exId]||[],skipped:!!wasSkipped});
     }
   });
   return entries.sort((a,b)=>b.date.localeCompare(a.date));
@@ -443,9 +472,7 @@ function getExHistory(exId,wid){
 
 function getMaxWeight(exId,wid){
   let max=null;
-  const ws=state.sessions[wid]||{};
-  Object.keys(ws).forEach(date=>{
-    const sess=ws[date];
+  getHistory(wid).forEach(sess=>{
     if(sess.weights&&sess.weights[exId]){
       sess.weights[exId].forEach(v=>{
         if(v&&!isNaN(parseFloat(v))){
@@ -459,14 +486,12 @@ function getMaxWeight(exId,wid){
 }
 
 function getPrevWeights(wid){
-  const today=todayKey();
-  const ws=state.sessions[wid]||{};
-  const dates=Object.keys(ws).filter(d=>d!==today).sort().reverse();
-  return dates.length?(ws[dates[0]].weights||{}):{};
+  const h=getHistory(wid);
+  return h.length ? (h[h.length-1].weights||{}) : {};
 }
 
 function countChecked(wid){
-  const s=getSession(wid);
+  const s=getCurrent(wid);
   const w=WORKOUTS.find(w=>w.id===wid);
   let count=0;
   w.blocks.forEach(b=>b.exercises.forEach(ex=>{
@@ -476,9 +501,8 @@ function countChecked(wid){
 }
 function countTotal(wid){const w=WORKOUTS.find(w=>w.id===wid);return w.blocks.reduce((a,b)=>a+b.exercises.length,0);}
 function lastDone(wid){
-  const today=todayKey();
-  const ws=state.sessions[wid]||{};
-  return Object.keys(ws).filter(d=>d!==today&&ws[d].completed).sort().reverse()[0]||null;
+  const h=getHistory(wid);
+  return h.length ? h[h.length-1].date : null;
 }
 
 function showScreen(id){
@@ -493,8 +517,8 @@ function renderHome(){
   const container=document.getElementById('cards-container');
   container.innerHTML='';
   WORKOUTS.forEach(w=>{
-    const s=getSession(w.id);
-    const done=s.completed;
+    const s=getCurrent(w.id);
+    const done=false;
     const checked=countChecked(w.id);
     const total=countTotal(w.id);
     const inProg=checked>0&&!done;
@@ -536,7 +560,7 @@ function goHome(){
 
 function renderWorkout(){
   const w=WORKOUTS.find(w=>w.id===currentWid);
-  const s=getSession(currentWid);
+  const s=getCurrent(currentWid);
   const prev=getPrevWeights(currentWid);
   const checked=countChecked(currentWid);
   const total=countTotal(currentWid);
@@ -550,10 +574,10 @@ function renderWorkout(){
 
   const btn=document.getElementById('complete-btn');
   const resetBtn=document.getElementById('reset-btn');
-  btn.className=s.completed?'on':'off';
+  btn.className='off';
   btn.style.setProperty('--c',w.color);
-  btn.textContent=s.completed?'✓ Entrenamiento completado':'Marcar como completado';
-  resetBtn.style.display=s.completed?'block':'none';
+  btn.textContent='✓ Terminar y guardar sesión';
+  resetBtn.style.display='block';
 
   const notesEl=document.getElementById('session-notes');
   notesEl.value=s.notes||'';
@@ -713,13 +737,31 @@ function openHelp(title,help){
 }
 function closeHelp(){document.getElementById('help-overlay').classList.remove('open');}
 
-function toggleComplete(){const s=getSession(currentWid);s.completed=!s.completed;save();renderWorkout();}
-function resetSession(){
-  const today=todayKey();
-  if(state.sessions[currentWid]&&state.sessions[currentWid][today]){
-    delete state.sessions[currentWid][today];
-    save();renderWorkout();
+// Terminar y guardar: archiva la sesión en curso y limpia la actual.
+function toggleComplete(){
+  const s=getCurrent(currentWid);
+  const hayAlgo = Object.values(s.checks).some(Boolean)
+    || Object.values(s.skipped).some(Boolean)
+    || Object.values(s.weights).some(arr=>Array.isArray(arr)&&arr.some(v=>v));
+  if(!hayAlgo){
+    alert('Marcá al menos un ejercicio o cargá un peso antes de terminar la sesión.');
+    return;
   }
+  getHistory(currentWid).push({
+    date: todayKey(),
+    weights: JSON.parse(JSON.stringify(s.weights)),
+    skipped: JSON.parse(JSON.stringify(s.skipped)),
+    notes: s.notes||""
+  });
+  state.current[currentWid]={checks:{},weights:{},skipped:{},notes:""};
+  save();
+  renderWorkout();
+  alert('✓ Sesión guardada. Tu progreso quedó en el historial de cada ejercicio.');
+}
+
+function resetSession(){
+  state.current[currentWid]={checks:{},weights:{},skipped:{},notes:""};
+  save();renderWorkout();
 }
 
 boot();
