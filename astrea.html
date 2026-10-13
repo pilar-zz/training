@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Astrea's Plan</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{background:#080808;color:#f0f0f0;font-family:system-ui,-apple-system,sans-serif;min-height:100%}
+  body{padding-bottom:60px}
+  button{font-family:inherit;cursor:pointer}
+  input,textarea{font-family:inherit}
+  .screen{display:none;min-height:100vh;background:#080808}
+  .screen.active{display:block}
+  .inner{max-width:460px;margin:0 auto;padding:24px 15px 50px}
+  .eyebrow{font-family:monospace;font-size:10px;letter-spacing:.18em;color:#444;text-transform:uppercase;margin-bottom:6px}
+  h1{font-size:27px;font-weight:800;line-height:1.1;margin-bottom:4px}
+  .subtitle{font-size:13px;color:#555;margin-bottom:20px}
+  .back-link{display:inline-block;font-size:11px;color:#444;margin-bottom:18px;text-decoration:none;border:1px solid #222;border-radius:8px;padding:5px 11px}
+
+  .info-banner{background:#111;border:1px solid #1e1e1e;border-radius:12px;padding:14px 16px;margin-bottom:22px}
+  .info-row{display:flex;gap:10px;margin-bottom:10px;align-items:flex-start}
+  .info-row:last-child{margin-bottom:0}
+  .info-icon{font-size:15px;flex-shrink:0;margin-top:1px}
+  .info-text{font-size:12px;color:#888;line-height:1.55}
+  .info-text b{color:#ccc}
+
+  .w-card{background:#141414;border:1.5px solid #222;border-radius:14px;padding:16px 18px;cursor:pointer;position:relative;margin-bottom:11px;transition:border-color .15s}
+  .w-card.done{border-color:var(--c)}
+  .w-card-top{display:flex;align-items:center;gap:12px}
+  .w-emoji{font-size:25px}
+  .w-info{flex:1}
+  .w-name{font-size:16px;font-weight:700}
+  .w-meta{font-size:11px;color:#444;margin-top:2px}
+  .progress-wrap{margin-top:10px}
+  .progress-label{display:flex;justify-content:space-between;margin-bottom:4px;font-size:11px;color:#555}
+  .progress-label span:last-child{font-family:monospace;color:var(--c)}
+  .progress-bar{height:3px;background:#222;border-radius:2px}
+  .progress-fill{height:100%;border-radius:2px;background:var(--c);transition:width .3s}
+
+  #sticky-header{position:sticky;top:0;z-index:50;background:#080808f2;backdrop-filter:blur(10px);border-bottom:1px solid #181818;padding:11px 15px}
+  #sticky-inner{max-width:460px;margin:0 auto}
+  #header-row{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+  #back-btn{background:#1a1a1a;border:1px solid #2a2a2a;color:#777;border-radius:8px;padding:5px 11px;font-size:12px}
+  #w-title{flex:1;display:flex;align-items:center;gap:8px;font-size:16px;font-weight:700}
+  #w-count{font-size:12px;font-family:monospace;font-weight:700}
+  #header-progress{height:3px;background:#1e1e1e;border-radius:2px}
+  #header-progress-fill{height:100%;border-radius:2px;transition:width .25s}
+
+  .block{margin-bottom:20px}
+  .block-toggle{width:100%;display:flex;justify-content:space-between;align-items:center;background:none;border:none;padding:7px 0;margin-bottom:7px}
+  .block-name{font-size:10px;font-family:monospace;letter-spacing:.14em;color:#555;text-transform:uppercase;text-align:left}
+  .block-arrow{font-size:12px;color:#444}
+  .block-intro{font-size:11px;color:#555;line-height:1.55;margin:-2px 0 10px;padding:9px 11px;background:#0e0e0e;border:1px solid #1a1a1a;border-radius:9px}
+
+  .ex-card{background:#131313;border:1.5px solid #1f1f1f;border-radius:12px;padding:12px 12px 10px;margin-bottom:9px;transition:background .15s,border-color .15s}
+  .ex-card.checked{border-color:var(--c)}
+  .ex-card.skipped{border-color:#555;opacity:.7}
+  .ex-card.swapped{border-color:#3a300f}
+  .ex-row{display:flex;gap:10px;align-items:flex-start}
+  .checkbox{width:22px;height:22px;min-width:22px;border-radius:6px;border:2px solid #333;background:transparent;display:flex;align-items:center;justify-content:center;margin-top:2px;flex-shrink:0;transition:background .15s,border-color .15s}
+  .checkbox.on{background:var(--c);border-color:var(--c)}
+  .checkbox.on::after{content:'✓';font-size:12px;color:#000;font-weight:900;line-height:1}
+  .checkbox.skip{background:#333;border-color:#555}
+  .checkbox.skip::after{content:'–';font-size:14px;color:#aaa;font-weight:900;line-height:1}
+  .ex-body{flex:1;min-width:0}
+  .skip-badge{font-size:9px;font-family:monospace;color:#888;background:#1e1e1e;border:1px solid #333;border-radius:4px;padding:1px 6px;margin-bottom:3px;display:inline-block}
+  .alt-badge{font-size:9px;font-family:monospace;color:#f0a830;background:#2e1e04;border:1px solid #f0a83050;border-radius:4px;padding:1px 6px;margin-bottom:3px;display:inline-block}
+  .ex-top{display:flex;align-items:flex-start;justify-content:space-between;gap:6px}
+  .ex-name-row{display:flex;align-items:center;gap:6px;flex:1}
+  .ex-name{font-size:13px;font-weight:600;color:#e0e0e0;line-height:1.35;transition:color .15s}
+  .ex-card.checked .ex-name{color:var(--c)}
+  .ex-card.skipped .ex-name{color:#555}
+  .help-btn{width:18px;height:18px;min-width:18px;border-radius:50%;border:1.5px solid #3a3a3a;background:none;color:#666;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .ex-sets{font-size:10px;font-family:monospace;font-weight:700;color:var(--c);white-space:nowrap;padding:2px 7px;border-radius:4px;flex-shrink:0;border:1px solid}
+  .ex-note{font-size:11px;color:#555;margin-top:4px;line-height:1.5}
+
+  .sets-table{margin-top:10px;border-top:1px solid #1f1f1f;padding-top:9px}
+  .set-row{display:grid;grid-template-columns:46px 1fr 26px;align-items:center;gap:8px;margin-bottom:6px}
+  .set-label{font-size:11px;color:#555;font-family:monospace}
+  .set-input{width:100%;background:#0c0c0c;border:1px solid #252525;border-radius:6px;padding:5px 9px;color:#f0f0f0;font-size:12px;outline:none}
+  .set-input.filled{border-color:var(--c)}
+  .set-del{width:24px;height:24px;border:none;background:none;color:#3a3a3a;font-size:15px;display:flex;align-items:center;justify-content:center;border-radius:6px}
+  .add-set-btn{margin-top:7px;width:100%;background:none;border:1px dashed #2a2a2a;border-radius:7px;padding:6px;color:#444;font-size:11px}
+  .field-label{font-size:11px;color:#555;font-family:monospace;margin-bottom:6px}
+
+  .ex-max{margin-top:7px;font-size:11px;color:#555;display:flex;align-items:center;gap:6px}
+  .ex-max b{color:var(--c)}
+  .mini-hist-toggle{background:none;border:none;font-size:11px;color:#444;padding:0;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+  .mini-hist{display:none;margin-top:7px;background:#0c0c0c;border-radius:8px;padding:9px 10px}
+  .mini-hist.open{display:block}
+  .mini-hist-row{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:5px;gap:8px}
+  .mini-hist-row:last-child{margin-bottom:0}
+  .mini-hist-date{font-size:10px;font-family:monospace;color:#555;flex-shrink:0}
+  .mini-hist-pills{display:flex;gap:5px;flex-wrap:wrap}
+  .mini-pill{font-size:10px;font-family:monospace;background:#141414;border:1px solid #252525;border-radius:4px;padding:2px 6px;color:#ccc}
+  .mini-pill b{color:var(--c)}
+  .mini-skipped{font-size:10px;font-family:monospace;color:#555;font-style:italic}
+
+  .ex-actions{display:flex;gap:7px;margin-top:9px;flex-wrap:wrap}
+  .skip-btn{background:none;border:1px solid #2a2a2a;border-radius:7px;padding:4px 10px;color:#555;font-size:11px;display:flex;align-items:center;gap:4px}
+  .skip-btn.active{color:#888;border-color:#555}
+  .alt-btn{background:none;border:1px solid #252525;border-radius:7px;padding:4px 10px;color:#444;font-size:11px;display:flex;align-items:center;gap:5px}
+  .alt-btn.active{color:#f0a830;border-color:#f0a83055}
+
+  .notes-section{margin-top:24px}
+  .notes-label{font-size:10px;font-family:monospace;color:#444;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px}
+  .notes-input{width:100%;background:#111;border:1px solid #222;border-radius:10px;padding:12px 14px;color:#ccc;font-size:13px;outline:none;resize:none;line-height:1.5;min-height:90px}
+  .notes-input::placeholder{color:#333}
+
+  #complete-btn{width:100%;padding:14px;border-radius:13px;font-size:15px;font-weight:800;border:2px solid var(--c);cursor:pointer;transition:all .2s;margin-top:20px;background:#161616;color:var(--c)}
+  #reset-btn{width:100%;background:none;border:1px solid #222;border-radius:9px;padding:9px;color:#444;font-size:11px;margin-top:9px}
+  .tip-box{margin-top:20px;padding:12px 15px;background:#111;border-radius:10px;border:1px solid #1a1a1a}
+  .tip-label{font-size:10px;font-family:monospace;color:#444;text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px}
+  .tip-text{font-size:11px;color:#555;line-height:1.6;margin-bottom:6px}
+  .tip-text:last-child{margin-bottom:0}
+  .tip-text b{color:#888}
+
+  #help-overlay{display:none;position:fixed;inset:0;background:#000000cc;z-index:100;align-items:center;justify-content:center;padding:20px}
+  #help-overlay.open{display:flex}
+  #help-modal{background:#161616;border:1px solid #2a2a2a;border-radius:16px;max-width:380px;width:100%;max-height:80vh;overflow-y:auto;padding:20px;position:relative}
+  #help-modal h3{font-size:16px;font-weight:700;margin-bottom:10px;color:#f0f0f0;padding-right:20px}
+  .help-desc{font-size:13px;color:#999;line-height:1.6;margin-bottom:14px}
+  .help-tips-label{font-size:10px;font-family:monospace;color:#ff7a45;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px}
+  #help-modal ul{list-style:none}
+  #help-modal li{font-size:13px;color:#ccc;line-height:1.5;margin-bottom:7px;padding-left:18px;position:relative}
+  #help-modal li::before{content:'⚠';position:absolute;left:0;font-size:11px;color:#ff7a45}
+  #help-close{position:absolute;top:14px;right:14px;width:26px;height:26px;border-radius:50%;border:1px solid #333;background:#1e1e1e;color:#888;font-size:13px;display:flex;align-items:center;justify-content:center}
+
+  .sync-status{font-size:10px;font-family:monospace;padding:3px 9px;border-radius:20px;border:1px solid;display:inline-block;margin-left:8px}
+  .sync-status.ok{color:#4a8;border-color:#2a4a3a;background:#0d1a15}
+  .sync-status.saving{color:#888;border-color:#333;background:#141414}
+  .sync-status.err{color:#c66;border-color:#4a2a2a;background:#1a0d0d}
+
+  /* AUTH */
+  #auth-overlay{display:flex;position:fixed;inset:0;background:#080808;z-index:200;align-items:center;justify-content:center;padding:24px}
+  #auth-box{max-width:320px;width:100%;text-align:center}
+  #auth-box h2{font-size:22px;font-weight:800;margin-bottom:6px}
+  #auth-box p{font-size:13px;color:#555;margin-bottom:20px}
+  #auth-input{width:100%;background:#141414;border:1.5px solid #2a2a2a;border-radius:12px;padding:14px;color:#f0f0f0;font-size:20px;text-align:center;letter-spacing:.3em;outline:none;margin-bottom:12px}
+  #auth-input:focus{border-color:#ff7a45}
+  #auth-btn{width:100%;background:#ff7a45;color:#000;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:800}
+  #auth-err{color:#c66;font-size:12px;margin-top:12px;min-height:16px;margin-bottom:0}
+</style>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyCcRDS5SD1EbvBPZYvVwJjh4Nteyq7lxp4",
+    authDomain: "training-4dc4a.firebaseapp.com",
+    projectId: "training-4dc4a",
+    storageBucket: "training-4dc4a.firebasestorage.app",
+    messagingSenderId: "1014114936259",
+    appId: "1:1014114936259:web:a84feec483dcf7b208c976"
+  };
+  try { firebase.initializeApp(firebaseConfig); window._db = firebase.firestore(); }
+  catch(e){ window._db = null; }
+</script>
+</head>
+<body>
+
+<!-- AUTH GATE -->
+<div id="auth-overlay">
+  <div id="auth-box">
+    <h2>Astrea's Plan</h2>
+    <p>Enter your PIN to continue</p>
+    <input id="auth-input" type="password" inputmode="numeric" placeholder="PIN">
+    <button id="auth-btn" onclick="tryAuth()">Enter</button>
+    <p id="auth-err"></p>
+  </div>
+</div>
+
+<!-- HOME -->
+<div id="home-screen" class="screen active">
+  <div class="inner">
+    <a class="back-link" href="index.html">← Switch user</a>
+    <span class="sync-status saving" id="sync-status">connecting…</span>
+    <p class="eyebrow">Personal plan</p>
+    <h1>Astrea's Plan</h1>
+    <p class="subtitle">Pick today's session</p>
+    <div class="info-banner">
+      <div class="info-row"><span class="info-icon">🥊</span><span class="info-text"><b>Strength for Muay Thai:</b> 2 sessions per week, ~50 min each. Build muscle, develop explosive strength that carries over to the ring, strengthen glutes and protect hips, shoulders and wrists.</span></div>
+      <div class="info-row"><span class="info-icon">🧱</span><span class="info-text"><b>Three layers at once:</b> base strength (load that progresses), fast strength (moderate load moved as fast as possible) and transfer (force travelling floor → hips → torso → limb).</span></div>
+      <div class="info-row"><span class="info-icon">🔥</span><span class="info-text"><b>Always warm up first</b> (8–10 min). It is not a formality — it protects the joints Muay Thai already loads. Finish it with one light set of the day's first exercise.</span></div>
+      <div class="info-row"><span class="info-icon">⇄</span><span class="info-text"><b>Equipment taken?</b> Tap "Equipment taken" on any exercise to cycle through the alternatives.</span></div>
+      <div class="info-row"><span class="info-icon">🛑</span><span class="info-text"><b>Cut-off rule:</b> a set ends when technique degrades, not when the reps run out.</span></div>
+    </div>
+    <div id="cards-container"></div>
+  </div>
+</div>
+
+<!-- WORKOUT -->
+<div id="workout-screen" class="screen">
+  <div id="sticky-header">
+    <div id="sticky-inner">
+      <div id="header-row">
+        <button id="back-btn" onclick="goHome()">← Back</button>
+        <div id="w-title"></div>
+        <span id="w-count"></span>
+      </div>
+      <div id="header-progress"><div id="header-progress-fill"></div></div>
+    </div>
+  </div>
+  <div class="inner">
+    <div id="blocks-container"></div>
+    <div class="notes-section">
+      <p class="notes-label">📝 Session notes</p>
+      <textarea class="notes-input" id="session-notes" placeholder="E.g. hip thrust felt it in the lower back on the last set, ropes were taken so did punches..." rows="4"></textarea>
+    </div>
+    <button id="complete-btn" onclick="toggleComplete()">✓ Finish and save session</button>
+    <button id="reset-btn" onclick="resetSession()">Clear without saving (start over)</button>
+    <div class="tip-box">
+      <p class="tip-label">Progression</p>
+      <p class="tip-text"><b>Base strength:</b> add weight when the last rep of the last set is still clean. Slow, steady progression — no jumps.</p>
+      <p class="tip-text"><b>Fast strength:</b> don't progress by adding load, progress by keeping the speed. If the movement looks slow, take weight off.</p>
+      <p class="tip-text"><b>Tabata:</b> progress by raising intensity within the 20 seconds, not by extending the time.</p>
+      <p class="tip-text"><b>Cut-off rule:</b> a set ends when technique degrades. With Muay Thai 3x a week on top, accumulated fatigue is real — that's where injuries happen.</p>
+    </div>
+  </div>
+</div>
+
+<!-- HELP MODAL -->
+<div id="help-overlay" onclick="if(event.target===this) closeHelp()">
+  <div id="help-modal">
+    <button id="help-close" onclick="closeHelp()">✕</button>
+    <h3 id="help-title"></h3>
+    <p class="help-desc" id="help-desc"></p>
+    <p class="help-tips-label">Cues</p>
+    <ul id="help-tips"></ul>
+  </div>
+</div>
+
+<script>
+// unit: "reps", "sec" (time) or "kg" (weight, default). Defines what each set logs.
+// sets: number of set rows (default DEFAULT_SETS). noLog: just a checkbox, no set rows.
+// alts: list of alternatives when the equipment is taken (cycled with the ⇄ button).
+const COLOR="#ff7a45";
+
+const WARMUP_BLOCKS = (p) => [
+  { name:"Warm-up · Knees", warmup:true,
+    intro:"Work from least to most: no load first, finishing with one light set of the day's first exercise.",
+    exercises:[
+      {id:p+"_wk1",name:"Bodyweight terminal knee extensions",reps:"x15 per leg",note:"Seated or standing, straighten the leg fully and hold 2 seconds at the top."},
+      {id:p+"_wk2",name:"Leg swings front to back",reps:"x12 per leg",note:"Hold a wall or rack for balance. Controlled, no momentum."},
+      {id:p+"_wk3",name:"Deep bodyweight squats with pause",reps:"x10",note:"2-second pause at the bottom, full range."},
+  ]},
+  { name:"Warm-up · Hips", warmup:true, exercises:[
+      {id:p+"_wh1",name:"Standing hip circles",reps:"x10 each way",note:"Per leg. Knee up, draw a wide circle without moving the torso."},
+      {id:p+"_wh2",name:"90/90 hip switches",reps:"x10 per side",note:"Seated on the floor. The single best drill for the internal/external rotation range kicking demands."},
+      {id:p+"_wh3",name:"Lateral leg swings",reps:"x12 per leg",note:"Across the body and out."},
+      {id:p+"_wh4",name:"Walking lunge with torso rotation",reps:"x8 per side",note:"Lunge, rotate the torso toward the front leg, step through."},
+  ]},
+  { name:"Warm-up · Wrists", warmup:true, exercises:[
+      {id:p+"_ww1",name:"Wrist circles",reps:"x15 each way",note:"Slow and full range."},
+      {id:p+"_ww2",name:"Wrist flexion/extension stretch",reps:"20 sec each way",note:"Press the palm against the opposite hand."},
+      {id:p+"_ww3",name:"Quadruped wrist rocks",reps:"x15",note:"On hands and knees, palms flat, rock weight gently forward and back. Loads the joint progressively before any gripping work."},
+  ]},
+  { name:"Warm-up · Shoulders", warmup:true, exercises:[
+      {id:p+"_ws1",name:"Arm circles",reps:"x15 fwd / x15 back",note:"Small to large."},
+      {id:p+"_ws2",name:"Band pull-aparts",reps:"x15",note:"Arms straight, squeeze the shoulder blades together."},
+      {id:p+"_ws3",name:"Band dislocates (shoulder pass-throughs)",reps:"x10",note:"Wide grip, slow and controlled. Never force the range."},
+      {id:p+"_ws4",name:"Scapular wall slides",reps:"x12",note:"Back against the wall, arms sliding up and down keeping contact."},
+  ]},
+  { name:"Warm-up · Rotations", warmup:true, exercises:[
+      {id:p+"_wr1",name:"Standing torso twists",reps:"x20",note:"Unloaded, arms relaxed, hips facing forward."},
+      {id:p+"_wr2",name:"Cat–cow",reps:"x10 cycles",note:"Mobilise the spine before any loaded rotation."},
+      {id:p+"_wr3",name:"Thoracic open books",reps:"x8 per side",note:"Lying on one side, open the top arm across the body."},
+  ]},
+];
+
+const WORKOUTS = [
+  {
+    id:"astreaA", label:"Day A", emoji:"🥊", color:COLOR,
+    blocks:[
+      ...WARMUP_BLOCKS("a"),
+      { name:"1 · Activation", exercises:[
+        {id:"a_1",name:"Adductor / Abductor machine",reps:"2 × 15–20",sets:2,note:"Light load, nowhere near failure. Wake the hip stabilisers up, don't tire them.",
+          help:{desc:"The purpose is to wake up the glute medius and adductors so they stabilise the hip in what follows — not to fatigue them. If this is loaded heavily, the explosive block that follows loses speed, which defeats its purpose.",tips:["Light load, 2 sets of 15–20, far from failure","If it burns a lot, it's too heavy"]},
+          alts:[
+            {name:"Banded abductions",note:"Standing or seated, band above the knees."},
+            {name:"Monster walks / lateral band walks",note:"Band at the ankles."},
+            {name:"Copenhagen plank (easy version)",note:"Knee supported, for the adductors."},
+            {name:"Bodyweight sumo squat with pause",note:"Pause at the bottom."},
+          ]},
+      ]},
+      { name:"2 · Explosive", exercises:[
+        {id:"a_2",name:"Throwing ball squat",note:"Low load, maximum speed, long rest between sets. Log the ball weight.",
+          help:{desc:"The legs generate, the torso transmits, the arms release. This reproduces the full chain of a strike: floor → hips → torso → limb. Because the ball is released, there is no deceleration phase, so real power is expressed.",tips:["Low load, maximum speed","Rest long between sets — this is power, not conditioning","If it gets slow, the set is over"]},
+          alts:[
+            {name:"Jump squat",note:"Bodyweight or with a very light dumbbell."},
+            {name:"Chest pass throw (no squat)",note:"If space is limited."},
+            {name:"Kettlebell swing",note:"Same explosive chain from the hips."},
+            {name:"Push press with light dumbbells",note:"Drive from the legs, finish with the arms."},
+          ]},
+      ]},
+      { name:"3 · Lower", exercises:[
+        {id:"a_3",name:"Hip thrust",note:"Push through the heels, squeeze 1 sec at the top, hips in line with knees and shoulders — no further.",
+          help:{desc:"The glute as the primary engine of kicks and knees. Push through the heels, squeeze hard for one second at the top, and don't hyperextend the lower back — hips rise until they line up with knees and shoulders, no further.",tips:["Feel it in the lower back instead of the glute? The load is too heavy or you're over-arching","1-second squeeze at the top every rep","Don't push past a straight line"]},
+          alts:[
+            {name:"Single-leg hip thrust",note:"Bodyweight."},
+            {name:"Floor glute bridge with dumbbell",note:"Dumbbell across the hips."},
+            {name:"Hip thrust machine",note:"If the gym has one."},
+            {name:"Dumbbell Romanian deadlift",note:"Shifts the emphasis but still covers the posterior chain."},
+          ]},
+      ]},
+      { name:"4 · Upper", exercises:[
+        {id:"a_4",name:"Row (cable or machine)",note:"Torso fixed, no swinging, shoulder blades together at the end of the pull.",
+          help:{desc:"The main pulling movement. Compensates for Muay Thai's push-dominant pattern and protects the shoulder.",tips:["Torso fixed — no body English","Shoulder blades together at the end of every pull","Control the return"]},
+          alts:[
+            {name:"Single-arm dumbbell row",note:"Braced on a bench."},
+            {name:"Bent-over barbell row",note:"Flat back, pull to the belly button."},
+            {name:"Inverted row",note:"Low bar or rings, bodyweight."},
+            {name:"Banded row",note:"Band anchored at chest height."},
+          ]},
+      ]},
+      { name:"5 · Core", exercises:[
+        {id:"a_5",name:"Pallof press",note:"Anti-rotation: the work is in NOT turning while the arms press forward.",
+          help:{desc:"Trains exactly what the core needs in combat — resisting torque that comes from outside without giving way — and protects the lower back instead of adding more repetitive rotation to a body that already gets plenty.",tips:["If the torso turns toward the cable, the load is too heavy","Press out, hold, come back slow","Hips and shoulders stay square"]},
+          alts:[
+            {name:"Banded Pallof press",note:"Anchored to a rack or wall bar."},
+            {name:"Plank with alternating shoulder taps",note:"Bodyweight anti-rotation — hips don't rock."},
+            {name:"Bird dog with long pause",note:"Slow, hold each rep."},
+            {name:"Side plank with light weight",note:"Weight in the free hand."},
+          ]},
+      ]},
+      { name:"6 · Finisher", exercises:[
+        {id:"a_6",name:"Battle ropes — Tabata",reps:"8 × 20s / 10s",noLog:true,note:"4 minutes total. High intensity on every round — not meant to be paced.",
+          help:{desc:"Shoulder and forearm endurance with no joint impact and no axial loading, with a conditioning component that mirrors the rhythm of a round.",tips:["8 rounds: 20 seconds work, 10 seconds rest","Every round at full intensity","Progress by working harder inside the 20 seconds, not by adding time"]},
+          alts:[
+            {name:"Tabata — punches with 0.5–1 kg dumbbells",note:"Same area, same endurance stimulus."},
+            {name:"Tabata — light kettlebell swings",note:"8 × 20s / 10s."},
+            {name:"Tabata — burpees or mountain climbers",note:"8 × 20s / 10s."},
+            {name:"Tabata — rower or assault bike",note:"8 × 20s / 10s."},
+            {name:"Tabata — shadowboxing",note:"Maximum intensity, 8 × 20s / 10s."},
+          ]},
+      ]},
+    ]
+  },
+  {
+    id:"astreaB", label:"Day B", emoji:"🏋️", color:COLOR,
+    blocks:[
+      ...WARMUP_BLOCKS("b"),
+      { name:"1 · Lower",
+        intro:"Deadlift goes first here — keep it moderate, not maximal: a heavy deadlift right before the explosive block tires the posterior chain just when power is needed. Worth testing: deadlift right after the explosive block (short and light, so you arrive fresh but primed).",
+        exercises:[
+        {id:"b_1",name:"Deadlift",note:"Neutral spine, bar close to the legs, hips travel backward. Moderate load.",
+          help:{desc:"The full posterior chain: glutes, hamstrings, lower back. This is the exercise that builds the strength that power later feeds on. Neutral spine throughout, bar close to the legs, movement driven by the hips travelling backward.",tips:["The back must never round — if it does, the load comes down immediately","Bar stays close to the legs","Moderate load while it sits before the explosive work"]},
+          alts:[
+            {name:"Dumbbell Romanian deadlift",note:"Hinge from the hips, flat back."},
+            {name:"Kettlebell deadlift",note:"Kettlebell between the legs."},
+            {name:"Single-leg dumbbell deadlift",note:"Adds the unilateral component Muay Thai demands."},
+            {name:"Sumo squat with dumbbell or kettlebell",note:"Wide stance, chest up."},
+            {name:"Hip thrust",note:"If nothing else is free."},
+          ]},
+      ]},
+      { name:"2 · Explosive", exercises:[
+        {id:"b_2",name:"Lateral box step-up",note:"Explosive. Drive with the top leg, no push-off from the bottom foot.",
+          help:{desc:"Leg power in the frontal plane, which is where Muay Thai actually moves: footwork, stance switches, single-leg support for kicking. Most gym work happens forward and backward — this fills that gap.",tips:["All the drive comes from the leg on the box","No push-off from the bottom foot","Fast up, controlled down"]},
+          alts:[
+            {name:"Lateral step-up on bench or step",note:"Same pattern, lower height."},
+            {name:"Skater jumps",note:"Lateral bounds from one leg to the other."},
+            {name:"Lateral lunge with jump",note:"Explosive return to the centre."},
+            {name:"Lateral bounds",note:"Controlled landing."},
+          ]},
+        {id:"b_3",name:"Cable row — fast concentric",note:"Pull fast, return slow and controlled.",
+          help:{desc:"Trains the speed of arm retraction — getting back to guard quickly after throwing.",tips:["Explosive pull, slow return","If the pull gets slow, take weight off","Torso stays still"]},
+          alts:[
+            {name:"Banded row, explosive",note:"Fast pull, slow return."},
+            {name:"Single-arm dumbbell row, fast pull",note:"Fast pulling phase."},
+            {name:"Medicine ball slam",note:"Explosive pulling pattern."},
+          ]},
+      ]},
+      { name:"3 · Upper", exercises:[
+        {id:"b_4",name:"Neutral-grip dumbbell press (or incline)",note:"NOT a strict barbell overhead press yet. Progress toward it once scapular stability is solid.",
+          help:{desc:"Trains the pushing strength behind the straight punch. A shoulder that already takes heavy internal-rotation volume from striking three times a week is the worst candidate for strict overhead work early on — start with neutral-grip dumbbells or an incline press.",tips:["Neutral grip (palms facing each other)","No strict barbell overhead press for now","Superset straight into the face pull"]},
+          alts:[
+            {name:"Standing dumbbell press",note:"Neutral grip, ribs down."},
+            {name:"Feet-elevated push-ups",note:"Body in one line."},
+            {name:"Banded press",note:"Band anchored behind."},
+          ]},
+        {id:"b_5",name:"Face pull",note:"Right after the press. External rotators and lower traps — the muscles that offset all that striking.",
+          help:{desc:"Direct compensation for the press and for Muay Thai: external rotators and lower traps, the muscles that offset all that striking.",tips:["Pull to face height, elbows high","Rotate the hands back at the end","Light-moderate load, quality over weight"]},
+          alts:[
+            {name:"Banded face pull",note:"Band at face height."},
+            {name:"Side-lying dumbbell external rotation",note:"Elbow glued to the side."},
+          ]},
+      ]},
+      { name:"4 · Core", exercises:[
+        {id:"b_6",name:"Loaded rotation (cable)",note:"Rotation from hips and torso together, feet planted.",
+          help:{desc:"Direct transfer to punch and elbow power. The rotation comes from hips and torso together, feet planted, never pivoting on the supporting knee — this is what protects a hip that already works hard in training.",tips:["Feet planted","Never pivot on the supporting knee","Hips and torso turn together"]},
+          alts:[
+            {name:"Medicine ball rotational throw",note:"Against a wall."},
+            {name:"Russian twist with dumbbell",note:"Slower, more control."},
+            {name:"Banded woodchopper",note:"Same rotation, band anchored."},
+            {name:"Landmine rotation",note:"If there is a barbell anchor."},
+          ]},
+      ]},
+      { name:"5 · Finisher", exercises:[
+        {id:"b_7",name:"Farmer's carry",note:"Walk tall without leaning. Log the weight per hand.",
+          help:{desc:"Grip strength, trunk stability and postural endurance. The single-sided version (suitcase carry) loads the obliques harder and transfers directly to trunk control in the clinch.",tips:["Walk tall, don't lean","Shoulders down and back","Suitcase version: stay perfectly upright"]},
+          alts:[
+            {name:"Suitcase carry",note:"Single dumbbell — harder on the obliques."},
+            {name:"Kettlebell carry",note:"Same idea, kettlebells."},
+            {name:"Plate carry",note:"Plates held at the sides."},
+            {name:"Overhead carry",note:"Light dumbbell, adds shoulder stability."},
+          ]},
+      ]},
+    ]
+  },
+];
+
+function unitInfo(u){
+  if(u==="reps") return {label:"Reps", suffix:"reps", ph:"reps"};
+  if(u==="sec")  return {label:"Time", suffix:"sec", ph:"seconds"};
+  return {label:"Weight", suffix:"kg", ph:"weight (kg)"};
+}
+
+const DEFAULT_SETS=3;
+const SKEY="astrea_tracker_v1";
+const USER_ID="astrea";
+let state={history:{},current:{},collapsed:{},swapped:{}};
+let saveTimer=null;
+
+function setSync(txt,cls){const el=document.getElementById('sync-status');if(el){el.textContent=txt;el.className='sync-status '+cls;}}
+function loadLocal(){try{const r=localStorage.getItem(SKEY);if(r)state=JSON.parse(r);}catch(e){}}
+function saveLocal(){try{localStorage.setItem(SKEY,JSON.stringify(state));}catch(e){}}
+
+function save(){
+  saveLocal();
+  if(!window._db){ setSync('local mode','err'); return; }
+  setSync('saving…','saving');
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(async()=>{
+    try{
+      await window._db.collection('users').doc(USER_ID).set({data:JSON.stringify(state),updated:Date.now()});
+      setSync('✓ synced','ok');
+    }catch(e){ setSync('offline — saved locally','err'); }
+  },700);
+}
+
+async function boot(){
+  loadLocal();
+  migrateIfNeeded();
+  renderHome();
+  if(!window._db){ setSync('local mode','err'); return; }
+  setSync('loading…','saving');
+  try{
+    const doc=await window._db.collection('users').doc(USER_ID).get();
+    if(doc.exists && doc.data().data){
+      state=JSON.parse(doc.data().data);
+      migrateIfNeeded();
+      saveLocal();
+      renderHome();
+      if(currentWid) renderWorkout();
+    }
+    setSync('✓ synced','ok');
+  }catch(e){ setSync('offline — local mode','err'); }
+}
+
+function migrateIfNeeded(){
+  if(!state.history) state.history={};
+  if(!state.current) state.current={};
+  if(!state.collapsed) state.collapsed={};
+  if(!state.swapped) state.swapped={};
+}
+
+function todayKey(){return new Date().toISOString().slice(0,10);}
+
+function getCurrent(wid){
+  if(!state.current) state.current={};
+  if(!state.current[wid]) state.current[wid]={checks:{},weights:{},skipped:{},notes:""};
+  const s=state.current[wid];
+  if(!s.checks)s.checks={}; if(!s.weights)s.weights={}; if(!s.skipped)s.skipped={}; if(s.notes===undefined)s.notes="";
+  return s;
+}
+function getHistory(wid){ if(!state.history)state.history={}; if(!state.history[wid])state.history[wid]=[]; return state.history[wid]; }
+function baseSets(ex){ return ex.sets||DEFAULT_SETS; }
+function getExSets(session,ex){ if(!session.weights[ex.id])session.weights[ex.id]=new Array(baseSets(ex)).fill(""); return session.weights[ex.id]; }
+
+function getExHistory(exId,wid){
+  const entries=[];
+  getHistory(wid).forEach(sess=>{
+    const hasV=sess.weights&&sess.weights[exId]&&sess.weights[exId].some(v=>v);
+    const sk=sess.skipped&&sess.skipped[exId];
+    if(hasV||sk) entries.push({date:sess.date,sets:sess.weights?.[exId]||[],skipped:!!sk,alt:sess.alts?.[exId]||null});
+  });
+  return entries.sort((a,b)=>b.date.localeCompare(a.date));
+}
+function getMaxWeight(exId,wid){
+  let max=null;
+  getHistory(wid).forEach(sess=>{
+    if(sess.alts&&sess.alts[exId]) return; // best mark counts only the main exercise
+    if(sess.weights&&sess.weights[exId]) sess.weights[exId].forEach(v=>{
+      if(v&&!isNaN(parseFloat(v))){const n=parseFloat(v); if(max===null||n>max)max=n;}
+    });
+  });
+  return max;
+}
+function getPrevWeights(wid){ const h=getHistory(wid); return h.length?(h[h.length-1].weights||{}):{}; }
+
+function countChecked(wid){
+  const s=getCurrent(wid); const w=WORKOUTS.find(w=>w.id===wid); let c=0;
+  w.blocks.forEach(b=>b.exercises.forEach(ex=>{ if(s.checks[ex.id]||s.skipped[ex.id])c++; }));
+  return c;
+}
+function countTotal(wid){ const w=WORKOUTS.find(w=>w.id===wid); return w.blocks.reduce((a,b)=>a+b.exercises.length,0); }
+function countMain(w){ return w.blocks.filter(b=>!b.warmup).reduce((a,b)=>a+b.exercises.length,0); }
+function lastDone(wid){ const h=getHistory(wid); return h.length?h[h.length-1].date:null; }
+
+function swapIdx(ex){ const i=state.swapped[ex.id]||0; return (ex.alts&&i<=ex.alts.length)?i:0; }
+
+function showScreen(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); window.scrollTo(0,0); }
+
+let currentWid=null;
+
+function renderHome(){
+  const container=document.getElementById('cards-container'); container.innerHTML='';
+  WORKOUTS.forEach(w=>{
+    const checked=countChecked(w.id); const total=countTotal(w.id);
+    const inProg=checked>0; const last=lastDone(w.id);
+    const main=w.blocks.filter(b=>!b.warmup).flatMap(b=>b.exercises).map(e=>e.name.split(' (')[0].split(' —')[0]);
+    const card=document.createElement('div'); card.className='w-card'; card.style.setProperty('--c',w.color);
+    card.innerHTML=`
+      <div class="w-card-top">
+        <span class="w-emoji">${w.emoji}</span>
+        <div class="w-info">
+          <div class="w-name">${w.label}</div>
+          <div class="w-meta">${countMain(w)} exercises + warm-up${last?' · last done '+last:''}</div>
+          <div class="w-meta" style="color:#555;margin-top:4px">${main.join(' · ')}</div>
+        </div>
+      </div>
+      ${inProg?`<div class="progress-wrap"><div class="progress-label"><span>In progress</span><span>${checked}/${total}</span></div><div class="progress-bar"><div class="progress-fill" style="width:${(checked/total)*100}%"></div></div></div>`:''}
+    `;
+    card.onclick=()=>openWorkout(w.id); container.appendChild(card);
+  });
+}
+
+function openWorkout(wid){ currentWid=wid; showScreen('workout-screen'); renderWorkout(); }
+function goHome(){ currentWid=null; showScreen('home-screen'); renderHome(); }
+
+function renderWorkout(){
+  const w=WORKOUTS.find(w=>w.id===currentWid);
+  const s=getCurrent(currentWid);
+  const prev=getPrevWeights(currentWid);
+  const checked=countChecked(currentWid); const total=countTotal(currentWid); const prog=total>0?checked/total:0;
+
+  document.getElementById('w-title').innerHTML=`<span>${w.emoji}</span><span>${w.label}</span>`;
+  document.getElementById('w-count').textContent=checked+'/'+total;
+  document.getElementById('w-count').style.color=w.color;
+  document.getElementById('header-progress-fill').style.width=(prog*100)+'%';
+  document.getElementById('header-progress-fill').style.background=w.color;
+  const btn=document.getElementById('complete-btn'); btn.style.setProperty('--c',w.color);
+
+  const notesEl=document.getElementById('session-notes');
+  notesEl.value=s.notes||''; notesEl.oninput=()=>{s.notes=notesEl.value;save();};
+
+  const container=document.getElementById('blocks-container'); container.innerHTML='';
+  w.blocks.forEach((block,bi)=>{
+    const bkey=currentWid+'_'+bi; const collapsed=!!state.collapsed[bkey];
+    const blockEl=document.createElement('div'); blockEl.className='block';
+    const tb=document.createElement('button'); tb.className='block-toggle';
+    tb.innerHTML=`<span class="block-name">${block.name}</span><span class="block-arrow">${collapsed?'▼':'▲'}</span>`;
+    tb.onclick=()=>{state.collapsed[bkey]=!state.collapsed[bkey];save();renderWorkout();};
+    blockEl.appendChild(tb);
+
+    if(!collapsed){
+      if(block.intro){ const ip=document.createElement('p'); ip.className='block-intro'; ip.textContent=block.intro; blockEl.appendChild(ip); }
+      block.exercises.forEach(ex=>{
+        const si_=swapIdx(ex); const isSwapped=si_>0;
+        const disp=isSwapped?ex.alts[si_-1]:ex;
+        const chk=!!s.checks[ex.id]; const skipped=!!s.skipped[ex.id];
+        const isWarmup=!!block.warmup; const logs=!isWarmup&&!ex.noLog;
+        const sets=logs?getExSets(s,ex):null;
+        const prevSets=prev[ex.id]||[];
+        const ui=unitInfo(ex.unit);
+        const history=isWarmup?[]:getExHistory(ex.id,currentWid);
+        const maxW=logs?getMaxWeight(ex.id,currentWid):null;
+
+        const card=document.createElement('div');
+        let cc='ex-card'; if(chk)cc+=' checked'; if(skipped)cc+=' skipped'; if(isSwapped)cc+=' swapped'; card.className=cc;
+        card.style.setProperty('--c',w.color);
+
+        let setsHtml='';
+        if(logs&&!skipped){
+          setsHtml='<div class="sets-table"><p class="field-label">'+ui.label+' per set:</p>';
+          sets.forEach((val,si)=>{
+            const pv=prevSets[si]||'';
+            setsHtml+=`<div class="set-row"><span class="set-label">Set ${si+1}</span>
+              <input class="set-input${val?' filled':''}" style="--c:${w.color}" type="text"
+              placeholder="${pv?('last: '+pv):ui.ph}" value="${val}" data-exid="${ex.id}" data-setidx="${si}">
+              ${sets.length>baseSets(ex)?`<button class="set-del" data-exid="${ex.id}" data-setidx="${si}">✕</button>`:'<span></span>'}</div>`;
+          });
+          setsHtml+=`<button class="add-set-btn" data-exid="${ex.id}">+ Add set</button></div>`;
+        }
+
+        let maxHtml='';
+        if(!isWarmup){
+          const histPrev=history.filter(e=>e.date!==todayKey());
+          const maxStr=logs?(maxW!==null?`Best mark: <b>${maxW} ${ui.suffix}</b>`:'No records yet'):(histPrev.length?'Previous sessions':'');
+          const rows=histPrev.slice(0,5).map(e=>{
+            if(e.skipped) return `<div class="mini-hist-row"><span class="mini-hist-date">${e.date}</span><span class="mini-skipped">skipped</span></div>`;
+            const pills=e.sets.filter(v=>v).map((v,i)=>`<span class="mini-pill">S${i+1}: <b>${v}</b></span>`).join('');
+            const altTag=e.alt?`<span class="mini-skipped">alt: ${e.alt}</span>`:'';
+            return `<div class="mini-hist-row"><span class="mini-hist-date">${e.date}</span><div class="mini-hist-pills">${pills}${altTag}</div></div>`;
+          }).join('');
+          const hid='mh_'+ex.id;
+          if(maxStr||histPrev.length) maxHtml=`<div class="ex-max"><span>${maxStr}</span>${histPrev.length>0?`<button class="mini-hist-toggle" onclick="toggleMiniHist('${hid}')">see sessions</button>`:''}</div>${histPrev.length>0?`<div class="mini-hist" id="${hid}">${rows}</div>`:''}`;
+        }
+
+        const badge=disp.reps||ex.reps||'';
+        const altLabel=isSwapped?(si_<ex.alts.length?`Next alternative (${si_+1}/${ex.alts.length})`:'Back to original'):'Equipment taken';
+
+        card.innerHTML=`
+          <div class="ex-row">
+            <div class="checkbox${chk?' on':skipped?' skip':''}" id="cb_${ex.id}"></div>
+            <div class="ex-body">
+              ${isSwapped?`<span class="alt-badge">ALTERNATIVE ${si_}/${ex.alts.length}</span> `:''}
+              ${skipped?'<span class="skip-badge">SKIPPED</span>':''}
+              <div class="ex-top">
+                <div class="ex-name-row">
+                  <span class="ex-name">${disp.name}</span>
+                  ${ex.help?`<button class="help-btn" id="hb_${ex.id}">?</button>`:''}
+                </div>
+                ${badge?`<span class="ex-sets" style="color:${w.color};background:${w.color}22;border-color:${w.color}44">${badge}</span>`:''}
+              </div>
+              <p class="ex-note">${disp.note}${isSwapped?` <span style="color:#444">· replaces ${ex.name}</span>`:''}</p>
+              ${setsHtml}
+              ${maxHtml}
+              <div class="ex-actions">
+                <button class="skip-btn${skipped?' active':''}" id="sk_${ex.id}"><span>${skipped?'↩ Undo skip':'⏭ Skip'}</span></button>
+                ${ex.alts?`<button class="alt-btn${isSwapped?' active':''}" id="ab_${ex.id}"><span>⇄</span><span>${altLabel}</span></button>`:''}
+              </div>
+            </div>
+          </div>`;
+
+        card.querySelector('#cb_'+ex.id).onclick=()=>{
+          if(skipped){s.skipped[ex.id]=false;s.checks[ex.id]=false;} else {s.checks[ex.id]=!s.checks[ex.id];}
+          save();renderWorkout();
+        };
+        card.querySelector('#sk_'+ex.id).onclick=()=>{
+          if(skipped){s.skipped[ex.id]=false;s.checks[ex.id]=false;} else {s.skipped[ex.id]=true;s.checks[ex.id]=false;}
+          save();renderWorkout();
+        };
+        if(ex.alts){ const ab=card.querySelector('#ab_'+ex.id); if(ab)ab.onclick=()=>{ state.swapped[ex.id]=(swapIdx(ex)+1)%(ex.alts.length+1); save();renderWorkout(); }; }
+        if(ex.help){ const hb=card.querySelector('#hb_'+ex.id); if(hb)hb.onclick=(e)=>{e.stopPropagation();openHelp(ex.name,ex.help);}; }
+
+        if(logs&&!skipped){
+          card.querySelectorAll('.set-input').forEach(inp=>{
+            inp.oninput=e=>{
+              s.weights[e.target.dataset.exid][parseInt(e.target.dataset.setidx)]=e.target.value;
+              e.target.classList.toggle('filled',!!e.target.value);
+              save();
+            };
+          });
+          card.querySelectorAll('.set-del').forEach(d=>{ d.onclick=()=>{ s.weights[d.dataset.exid].splice(parseInt(d.dataset.setidx),1); save();renderWorkout(); }; });
+          const ab=card.querySelector('.add-set-btn'); if(ab)ab.onclick=()=>{ s.weights[ex.id].push(""); save();renderWorkout(); };
+        }
+        blockEl.appendChild(card);
+      });
+    }
+    container.appendChild(blockEl);
+  });
+}
+
+function toggleMiniHist(id){ const el=document.getElementById(id); if(el)el.classList.toggle('open'); }
+function openHelp(title,help){
+  document.getElementById('help-title').textContent=title;
+  document.getElementById('help-desc').textContent=help.desc;
+  const tl=document.getElementById('help-tips'); tl.innerHTML='';
+  help.tips.forEach(t=>{const li=document.createElement('li');li.textContent=t;tl.appendChild(li);});
+  document.getElementById('help-overlay').classList.add('open');
+}
+function closeHelp(){ document.getElementById('help-overlay').classList.remove('open'); }
+
+function toggleComplete(){
+  const s=getCurrent(currentWid);
+  const hasAny=Object.values(s.checks).some(Boolean)||Object.values(s.skipped).some(Boolean)||Object.values(s.weights).some(a=>Array.isArray(a)&&a.some(v=>v));
+  if(!hasAny){ alert('Check at least one exercise before finishing the session.'); return; }
+  // remember which alternative was used for each exercise
+  const w=WORKOUTS.find(w=>w.id===currentWid); const alts={};
+  w.blocks.forEach(b=>b.exercises.forEach(ex=>{ const i=swapIdx(ex); if(i>0) alts[ex.id]=ex.alts[i-1].name; }));
+  getHistory(currentWid).push({date:todayKey(),weights:JSON.parse(JSON.stringify(s.weights)),skipped:JSON.parse(JSON.stringify(s.skipped)),alts,notes:s.notes||""});
+  state.current[currentWid]={checks:{},weights:{},skipped:{},notes:""};
+  save();renderWorkout();
+  alert('✓ Session saved. Your marks are in each exercise\'s history.');
+}
+function resetSession(){ state.current[currentWid]={checks:{},weights:{},skipped:{},notes:""}; save();renderWorkout(); }
+
+// ── AUTH ──
+const PIN="2026"; const AUTH_KEY="auth_astrea";
+function tryAuth(){
+  const v=document.getElementById('auth-input').value.trim();
+  if(v===PIN){
+    try{ localStorage.setItem(AUTH_KEY,"1"); }catch(e){}
+    document.getElementById('auth-overlay').style.display='none';
+  } else {
+    document.getElementById('auth-err').textContent='Wrong PIN';
+    document.getElementById('auth-input').value='';
+  }
+}
+function checkAuth(){
+  let ok=false; try{ ok=localStorage.getItem(AUTH_KEY)==="1"; }catch(e){}
+  if(ok) document.getElementById('auth-overlay').style.display='none';
+}
+document.getElementById('auth-input').addEventListener('keydown',e=>{ if(e.key==='Enter')tryAuth(); });
+
+checkAuth();
+boot();
+</script>
+</body>
+</html>
